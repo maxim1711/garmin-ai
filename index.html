@@ -689,7 +689,10 @@ async function sendMessage() {
     thinking.textContent = reply;
     chatHistory.push({ role: 'assistant', content: reply });
   } catch(e) {
-    thinking.textContent = '❌ Error: ' + e.message;
+    const isNetwork = e instanceof TypeError && e.message === 'Failed to fetch';
+    thinking.textContent = isNetwork
+      ? '❌ Network error — make sure you\'re using the HTTPS site (GitHub Pages), not a local server.'
+      : '❌ Error: ' + e.message;
   } finally {
     btn.disabled = false;
   }
