@@ -1,0 +1,51 @@
+{
+  "2026-06-28": {
+    "date": "2026-06-28",
+    "resting_hr": 50,
+    "steps": 24178,
+    "avg_stress": 48,
+    "body_battery_lo": 5,
+    "body_battery_hi": 56,
+    "sleep_duration_h": 3.5,
+    "sleep_score": 46,
+    "hrv_ms": null,
+    "training_readiness": 30,
+    "activities": [
+      {
+        "name": "Frankfurt am Main Wandelen",
+        "type": "walking",
+        "start": "2026-06-28 04:43:14",
+        "duration_s": 1349.8759765625,
+        "distance_m": 1915.3900146484375,
+        "avg_hr": 89.0,
+        "calories": 132.0
+      }
+    ]
+  },
+  "2026-06-27": {
+    "date": "2026-06-27",
+    "resting_hr": 47,
+    "steps": 22640,
+    "avg_stress": 29,
+    "body_battery_lo": 10,
+    "body_battery_hi": 86,
+    "sleep_duration_h": 7.2,
+    "sleep_score": 86,
+    "hrv_ms": null,
+    "training_readiness": 38,
+    "activities": []
+  },
+  "2026-06-26": {
+    "date": "2026-06-26",
+    "resting_hr": 53,
+    "steps": 23883,
+    "avg_stress": 31,
+    "body_battery_lo": 5,
+    "body_battery_hi": 6,
+    "sleep_duration_h": 0.0,
+    "sleep_score": null,
+    "hrv_ms": null,
+    "training_readiness": 25,
+    "activities": []
+  }
+}
