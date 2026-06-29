@@ -4,4 +4,10 @@
 - Duration: 22m
 - Distance: 1.92 km
 - Avg HR: 89.0 bpm
+- Max HR: 114.0 bpm
 - Calories: 132.0 kcal
+- Avg pace: 11:45 /km
+- Elevation gain: 8 m
+- Aerobic TE: 0.3
+- Anaerobic TE: 0.0
+- Training load: 4

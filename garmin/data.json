@@ -8,17 +8,32 @@
     "body_battery_hi": 56,
     "sleep_duration_h": 3.5,
     "sleep_score": 46,
+    "sleep_rem_h": 0.3,
+    "sleep_deep_h": 1.5,
     "hrv_ms": null,
+    "hrv_baseline_lo": null,
+    "hrv_baseline_hi": null,
     "training_readiness": 30,
+    "intensity_min_weekly": null,
+    "intensity_min_moderate": null,
+    "intensity_min_vigorous": null,
     "activities": [
       {
+        "activity_id": 23402332098,
         "name": "Frankfurt am Main Wandelen",
         "type": "walking",
         "start": "2026-06-28 04:43:14",
         "duration_s": 1349.8759765625,
         "distance_m": 1915.3900146484375,
         "avg_hr": 89.0,
-        "calories": 132.0
+        "max_hr": 114.0,
+        "calories": 132.0,
+        "aerobic_te": 0.30000001192092896,
+        "anaerobic_te": 0.0,
+        "training_load": 4.0948028564453125,
+        "avg_pace_s_km": 705,
+        "elevation_gain_m": 8.0,
+        "num_laps": null
       }
     ]
   },
@@ -31,8 +46,15 @@
     "body_battery_hi": 86,
     "sleep_duration_h": 7.2,
     "sleep_score": 86,
+    "sleep_rem_h": 1.2,
+    "sleep_deep_h": 2.2,
     "hrv_ms": null,
+    "hrv_baseline_lo": null,
+    "hrv_baseline_hi": null,
     "training_readiness": 38,
+    "intensity_min_weekly": null,
+    "intensity_min_moderate": null,
+    "intensity_min_vigorous": null,
     "activities": []
   },
   "2026-06-26": {
@@ -44,8 +66,15 @@
     "body_battery_hi": 6,
     "sleep_duration_h": 0.0,
     "sleep_score": null,
+    "sleep_rem_h": null,
+    "sleep_deep_h": null,
     "hrv_ms": null,
+    "hrv_baseline_lo": null,
+    "hrv_baseline_hi": null,
     "training_readiness": 25,
+    "intensity_min_weekly": null,
+    "intensity_min_moderate": null,
+    "intensity_min_vigorous": null,
     "activities": []
   },
   "2026-06-25": {
