@@ -367,6 +367,9 @@
         <h3 style="margin-top:14px">Proxy URL</h3>
         <p>Required for browser use. Deploy <code style="font-size:11px;color:var(--blue)">worker.js</code> on Cloudflare Workers (free) and paste the URL here.</p>
         <input type="url" id="proxy-url-input" placeholder="https://your-worker.workers.dev" />
+        <h3 style="margin-top:14px">GitHub Token</h3>
+        <p>Optional. Create a <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--blue)">GitHub PAT</a> with <code style="font-size:11px;color:var(--blue)">workflow</code> scope to trigger live Garmin syncs from the Refresh button.</p>
+        <input type="password" id="gh-token-input" placeholder="ghp_…" />
         <button class="btn" style="width:100%" onclick="saveSettings()">Save</button>
         <div id="key-status" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
       </div>
@@ -612,25 +615,28 @@ function showTab(id, el) {
 function saveSettings() {
   const key = document.getElementById('api-key-input').value.trim();
   const proxy = document.getElementById('proxy-url-input').value.trim();
+  const ghToken = document.getElementById('gh-token-input').value.trim();
   let saved = [];
-  if (key) { localStorage.setItem('claude_api_key', key); saved.push('key'); }
-  if (proxy) { localStorage.setItem('claude_proxy_url', proxy); saved.push('proxy URL'); }
+  if (key)     { localStorage.setItem('claude_api_key',  key);     saved.push('key'); }
+  if (proxy)   { localStorage.setItem('claude_proxy_url', proxy);  saved.push('proxy URL'); }
+  if (ghToken) { localStorage.setItem('github_token',    ghToken); saved.push('GitHub token'); }
   if (saved.length) {
     document.getElementById('key-status').textContent = '✓ Saved: ' + saved.join(' + ');
-    if (key) document.getElementById('api-key-input').value = '';
-    if (proxy) document.getElementById('proxy-url-input').value = '';
+    if (key)     document.getElementById('api-key-input').value   = '';
+    if (proxy)   document.getElementById('proxy-url-input').value = '';
+    if (ghToken) document.getElementById('gh-token-input').value  = '';
   }
 }
 
 window.addEventListener('load', () => {
-  const hasKey = !!localStorage.getItem('claude_api_key');
-  const hasProxy = !!localStorage.getItem('claude_proxy_url');
-  if (hasKey) document.getElementById('api-key-input').placeholder = '••• key saved •••';
-  if (hasProxy) document.getElementById('proxy-url-input').placeholder = '••• proxy saved •••';
-  if (hasKey || hasProxy) {
-    const parts = [hasKey && 'key', hasProxy && 'proxy'].filter(Boolean);
-    document.getElementById('key-status').textContent = '✓ Loaded: ' + parts.join(' + ');
-  }
+  const hasKey     = !!localStorage.getItem('claude_api_key');
+  const hasProxy   = !!localStorage.getItem('claude_proxy_url');
+  const hasGhToken = !!localStorage.getItem('github_token');
+  if (hasKey)     document.getElementById('api-key-input').placeholder   = '••• key saved •••';
+  if (hasProxy)   document.getElementById('proxy-url-input').placeholder = '••• proxy saved •••';
+  if (hasGhToken) document.getElementById('gh-token-input').placeholder  = '••• token saved •••';
+  const parts = [hasKey && 'key', hasProxy && 'proxy', hasGhToken && 'GitHub token'].filter(Boolean);
+  if (parts.length) document.getElementById('key-status').textContent = '✓ Loaded: ' + parts.join(' + ');
 });
 
 // ── AI Chat ──────────────────────────────────────────────────────────────────
@@ -739,10 +745,67 @@ function handleKey(e) {
 
 async function refreshData() {
   const btn = document.getElementById('refresh-btn');
+  const ghToken = localStorage.getItem('github_token');
   btn.style.pointerEvents = 'none';
-  btn.classList.add('spinning');
-  await loadData();
-  btn.classList.remove('spinning');
+
+  if (ghToken) {
+    const origText = btn.textContent;
+    btn.textContent = '⏳ Syncing…';
+    try {
+      const dispatch = await fetch(
+        'https://api.github.com/repos/maxim1711/garmin-ai/actions/workflows/garmin-sync.yml/dispatches',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + ghToken,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ref: 'main' }),
+        }
+      );
+      if (!dispatch.ok) throw new Error('GitHub dispatch failed (' + dispatch.status + ')');
+
+      // Wait for the run to register, then grab its ID
+      await new Promise(r => setTimeout(r, 4000));
+      const runsRes = await fetch(
+        'https://api.github.com/repos/maxim1711/garmin-ai/actions/runs?event=workflow_dispatch&per_page=1',
+        { headers: { 'Authorization': 'Bearer ' + ghToken, 'Accept': 'application/vnd.github+json' } }
+      );
+      const runsData = await runsRes.json();
+      const runId = runsData.workflow_runs?.[0]?.id;
+
+      // Poll until completed (max 3 min)
+      const startTime = Date.now();
+      while (runId && Date.now() - startTime < 3 * 60 * 1000) {
+        await new Promise(r => setTimeout(r, 6000));
+        const elapsed = Math.round((Date.now() - startTime) / 1000);
+        btn.textContent = `⏳ ${elapsed}s…`;
+        const runRes = await fetch(
+          `https://api.github.com/repos/maxim1711/garmin-ai/actions/runs/${runId}`,
+          { headers: { 'Authorization': 'Bearer ' + ghToken, 'Accept': 'application/vnd.github+json' } }
+        );
+        const runData = await runRes.json();
+        if (runData.status === 'completed') break;
+      }
+
+      btn.textContent = '✓ Done!';
+      await loadData();
+      setTimeout(() => { btn.textContent = origText; }, 2000);
+    } catch (e) {
+      btn.textContent = origText;
+      document.getElementById('last-updated').textContent = '❌ ' + e.message;
+      setTimeout(() => {
+        document.getElementById('last-updated').textContent =
+          sortedDays[0] ? 'Updated ' + sortedDays[0] : '';
+      }, 5000);
+    }
+  } else {
+    btn.classList.add('spinning');
+    await loadData();
+    btn.classList.remove('spinning');
+  }
   btn.style.pointerEvents = '';
 }
 
