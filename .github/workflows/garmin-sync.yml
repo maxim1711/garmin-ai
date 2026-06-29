@@ -2,7 +2,7 @@ name: Garmin Sync
 
 on:
   schedule:
-    - cron: "0 6 * * *"   # 06:00 UTC every morning — adjust to your timezone
+    - cron: "0 */3 * * *"  # every 3 hours
   workflow_dispatch:        # allows manual "Run workflow" from the Actions tab
 
 jobs:

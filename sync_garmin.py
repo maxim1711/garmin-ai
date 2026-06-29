@@ -95,6 +95,8 @@ def fetch_day(client: garminconnect.Garmin, day: date) -> dict:
             (daily.get("sleepTimeSeconds") or 0) / 3600, 1
         )
         data["sleep_score"] = daily.get("sleepScores", {}).get("overall", {}).get("value")
+        data["sleep_rem_h"] = round((daily.get("remSleepSeconds") or 0) / 3600, 1) or None
+        data["sleep_deep_h"] = round((daily.get("deepSleepSeconds") or 0) / 3600, 1) or None
     except Exception:
         pass
 
@@ -103,6 +105,8 @@ def fetch_day(client: garminconnect.Garmin, day: date) -> dict:
         hrv = client.get_hrv_data(ds)
         summary = hrv.get("hrvSummary", {})
         data["hrv_ms"] = summary.get("lastNight")
+        data["hrv_baseline_lo"] = summary.get("baselineLowUpper")
+        data["hrv_baseline_hi"] = summary.get("baselineHighUpper")
     except Exception:
         pass
 
@@ -114,25 +118,76 @@ def fetch_day(client: garminconnect.Garmin, day: date) -> dict:
     except Exception:
         pass
 
-    # Activities
+    # VO2max and training status (fetched once per day, not per activity)
+    try:
+        metrics = client.get_max_metrics(ds)
+        if metrics:
+            m = metrics[0]
+            data["vo2max"] = m.get("generic", {}).get("vo2MaxValue")
+    except Exception:
+        pass
+
+    try:
+        ts = client.get_training_status(ds)
+        if ts:
+            data["training_status"] = ts[0].get("mostRecentTrainingStatus")
+            data["training_load_7d"] = ts[0].get("latestEnhancedTrainingLoad7Days")
+            data["training_load_balance"] = ts[0].get("mostRecentTrainingLoadBalance")
+    except Exception:
+        pass
+
+    # Intensity minutes (weekly rolling)
+    try:
+        im = client.get_intensity_minutes_data(ds)
+        if im:
+            data["intensity_min_weekly"] = im.get("weeklyIntensityMinutes")
+            data["intensity_min_moderate"] = im.get("weeklyModerateIntensityMinutes")
+            data["intensity_min_vigorous"] = im.get("weeklyVigorousIntensityMinutes")
+    except Exception:
+        pass
+
+    # Activities — basic fields first, then enrich with detail call
     try:
         acts = client.get_activities_by_date(ds, ds)
-        data["activities"] = [
-            {
-                "name":        a.get("activityName"),
-                "type":        a.get("activityType", {}).get("typeKey"),
-                "start":       a.get("startTimeLocal"),
-                "duration_s":  a.get("duration"),
-                "distance_m":  a.get("distance"),
-                "avg_hr":      a.get("averageHR"),
-                "calories":    a.get("calories"),
+        enriched = []
+        for a in acts:
+            act = {
+                "activity_id":  a.get("activityId"),
+                "name":         a.get("activityName"),
+                "type":         a.get("activityType", {}).get("typeKey"),
+                "start":        a.get("startTimeLocal"),
+                "duration_s":   a.get("duration"),
+                "distance_m":   a.get("distance"),
+                "avg_hr":       a.get("averageHR"),
+                "max_hr":       a.get("maxHR"),
+                "calories":     a.get("calories"),
+                "aerobic_te":   a.get("aerobicTrainingEffect"),
+                "anaerobic_te": a.get("anaerobicTrainingEffect"),
+                "training_load": a.get("activityTrainingLoad"),
+                "avg_pace_s_km": _pace(a.get("averageSpeed"), a.get("activityType", {}).get("typeKey")),
             }
-            for a in acts
-        ]
+            # Per-activity detail for elevation + laps count
+            try:
+                detail = client.get_activity(a["activityId"])
+                act["elevation_gain_m"] = detail.get("summaryDTO", {}).get("elevationGain")
+                act["num_laps"] = detail.get("metaData", {}).get("lapCount")
+            except Exception:
+                pass
+            enriched.append(act)
+        data["activities"] = enriched
     except Exception:
         data["activities"] = []
 
     return data
+
+
+def _pace(speed_ms: float | None, type_key: str | None) -> int | None:
+    """Convert m/s to seconds-per-km for running/walking; return None otherwise."""
+    if not speed_ms or speed_ms <= 0:
+        return None
+    if type_key not in ("running", "trail_running", "treadmill_running", "walking", "hiking"):
+        return None
+    return round(1000 / speed_ms)
 
 
 # ---------------------------------------------------------------------------
@@ -159,10 +214,15 @@ def render_wellness(data: dict) -> str:
     if d.get("resting_hr"):
         lines.append(f"- Resting HR: {d['resting_hr']} bpm")
     if d.get("hrv_ms"):
-        lines.append(f"- HRV (overnight): {d['hrv_ms']} ms")
+        baseline = ""
+        if d.get("hrv_baseline_lo") and d.get("hrv_baseline_hi"):
+            baseline = f" (baseline {d['hrv_baseline_lo']}–{d['hrv_baseline_hi']} ms)"
+        lines.append(f"- HRV (overnight): {d['hrv_ms']} ms{baseline}")
     if d.get("sleep_duration_h"):
         score = f" (score {d['sleep_score']})" if d.get("sleep_score") else ""
         lines.append(f"- Sleep: {d['sleep_duration_h']} h{score}")
+        if d.get("sleep_deep_h") or d.get("sleep_rem_h"):
+            lines.append(f"  - Deep: {d.get('sleep_deep_h') or '?'} h  REM: {d.get('sleep_rem_h') or '?'} h")
     lo = d.get("body_battery_lo")
     hi = d.get("body_battery_hi")
     if lo is not None or hi is not None:
@@ -173,6 +233,16 @@ def render_wellness(data: dict) -> str:
         lines.append(f"- Steps: {d['steps']}")
     if d.get("training_readiness") is not None:
         lines.append(f"- Training readiness: {d['training_readiness']}")
+    if d.get("vo2max") is not None:
+        lines.append(f"- VO2max: {d['vo2max']}")
+    if d.get("training_status"):
+        lines.append(f"- Training status: {d['training_status']}")
+    if d.get("training_load_7d") is not None:
+        balance = f" ({d['training_load_balance']})" if d.get("training_load_balance") else ""
+        lines.append(f"- Training load (7d): {round(d['training_load_7d'])}{balance}")
+    if d.get("intensity_min_weekly") is not None:
+        lines.append(f"- Intensity min (weekly): {d['intensity_min_weekly']} total  "
+                     f"({d.get('intensity_min_moderate') or 0} mod + {d.get('intensity_min_vigorous') or 0} vig)")
 
     return "\n".join(lines) + "\n"
 
@@ -187,8 +257,20 @@ def render_activity(act: dict, day_str: str) -> tuple[str, str]:
         f"- Duration: {_dur(act.get('duration_s'))}",
         f"- Distance: {_dist(act.get('distance_m'))}",
         f"- Avg HR: {act.get('avg_hr') or '?'} bpm",
+        f"- Max HR: {act.get('max_hr') or '?'} bpm",
         f"- Calories: {act.get('calories') or '?'} kcal",
     ]
+    if act.get("avg_pace_s_km"):
+        m, s = divmod(act["avg_pace_s_km"], 60)
+        lines.append(f"- Avg pace: {m}:{s:02d} /km")
+    if act.get("elevation_gain_m") is not None:
+        lines.append(f"- Elevation gain: {round(act['elevation_gain_m'])} m")
+    if act.get("aerobic_te") is not None:
+        lines.append(f"- Aerobic TE: {act['aerobic_te']:.1f}")
+    if act.get("anaerobic_te") is not None:
+        lines.append(f"- Anaerobic TE: {act['anaerobic_te']:.1f}")
+    if act.get("training_load") is not None:
+        lines.append(f"- Training load: {round(act['training_load'])}")
     return filename, "\n".join(lines) + "\n"
 
 
