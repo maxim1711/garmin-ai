@@ -205,6 +205,39 @@
   .loading-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--blue); animation: pulse 1s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
+  /* ── Weekly summary strip ── */
+  .week-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }
+  .week-cell { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 12px; text-align: center; }
+  .week-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .week-value { font-size: 22px; font-weight: 700; }
+  .week-delta { font-size: 12px; font-weight: 600; margin-top: 4px; }
+  .week-delta.up { color: var(--green); }
+  .week-delta.down { color: var(--red); }
+  .week-delta.flat { color: var(--muted); }
+
+  /* ── Personal bests ── */
+  .pb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .pb-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; cursor: pointer; transition: border-color 0.15s; }
+  .pb-card:hover { border-color: var(--blue); }
+  .pb-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .pb-value { font-size: 20px; font-weight: 700; margin-top: 6px; color: var(--yellow); }
+  .pb-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  /* ── Activity detail modal ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; }
+  .modal-overlay.open { display: block; }
+  .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }
+  .modal-sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; max-height: 85vh;
+    background: var(--surface); border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0; padding: 10px 20px 24px; overflow-y: auto;
+  }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 6px auto 14px; }
+  .modal-close { position: absolute; top: 14px; right: 18px; background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; line-height: 1; }
+  .modal-title { font-size: 18px; font-weight: 700; padding-right: 30px; }
+  .modal-date { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .modal-ai { background: var(--surface2); border-radius: 10px; padding: 14px; margin-top: 16px; }
+
   /* ── Fitness & Insight panel ── */
   .insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
   .insight-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 16px; }
@@ -284,6 +317,18 @@
     /* Insight grid: full width stack */
     .insight-grid { grid-template-columns: 1fr; }
 
+    /* Weekly strip: 2 columns */
+    .week-strip { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+    .week-cell { padding: 12px 10px; }
+    .week-value { font-size: 18px; }
+
+    /* Personal bests: stack tighter */
+    .pb-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .pb-card { padding: 12px; }
+    .pb-value { font-size: 17px; }
+
+    .modal-sheet { padding: 10px 16px 20px; max-height: 90vh; }
+
     /* Activities: chips wrap naturally, nothing hidden */
     .activity { padding: 12px 12px; border-radius: 10px; }
     .activity-name { font-size: 14px; }
@@ -314,6 +359,7 @@
 <div id="dashboard" class="page active">
   <div id="dash-loading" class="status"><span class="loading-dot"></span> Loading your data…</div>
   <div id="dash-content" style="display:none">
+    <div class="week-strip" id="week-strip" style="display:none"></div>
     <div class="cards" id="metric-cards"></div>
     <div class="insight-grid" id="fitness-panel" style="display:none">
       <div class="insight-box" id="vo2-box"></div>
@@ -394,8 +440,19 @@
 
 <!-- ACTIVITIES -->
 <div id="activities" class="page">
+  <div class="pb-grid" id="pb-section" style="display:none"></div>
   <p class="section-title">All Activities</p>
   <div class="activity-list" id="all-activities"></div>
+</div>
+
+<!-- ACTIVITY DETAIL MODAL -->
+<div class="modal-overlay" id="activity-modal">
+  <div class="modal-backdrop" onclick="closeActivity()"></div>
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeActivity()">✕</button>
+    <div id="modal-body"></div>
+  </div>
 </div>
 
 <!-- AI COACH -->
@@ -463,6 +520,7 @@ const DATA_URL = 'https://raw.githubusercontent.com/maxim1711/garmin-ai/main/gar
 const DEFAULT_PROXY = 'https://garmin-ai.maxim-ruigrok.workers.dev';
 let garminData = {};
 let sortedDays = [];
+let pbIds = new Set();
 
 // ── Colour helpers ──────────────────────────────────────────────────────────
 function readinessColor(v) {
@@ -800,12 +858,223 @@ function makeSleepStagesChart(id, days) {
   });
 }
 
+// ── Weekly summary strip ─────────────────────────────────────────────────────
+function weekBounds(weeksAgo) {
+  const now = new Date();
+  const dow = (now.getDay() + 6) % 7; // Monday = 0
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - dow - weeksAgo * 7);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { start: monday, end: sunday };
+}
+
+function weekStats(weeksAgo) {
+  const { start, end } = weekBounds(weeksAgo);
+  let km = 0, hours = 0, sessions = 0, load = 0;
+  for (const day of sortedDays) {
+    const d = new Date(day);
+    if (d < start || d > end) continue;
+    const acts = garminData[day]?.activities || [];
+    for (const a of acts) {
+      sessions++;
+      km += (a.distance_m || 0) / 1000;
+      hours += (a.duration_s || 0) / 3600;
+      load += a.training_load || 0;
+    }
+  }
+  return { km, hours, sessions, load };
+}
+
+function deltaBadge(curr, prev) {
+  if (!prev) return '';
+  const diff = curr - prev;
+  const pct = Math.round((diff / prev) * 100);
+  if (Math.abs(pct) < 3) return `<div class="week-delta flat">— vs last wk</div>`;
+  const cls = diff > 0 ? 'up' : 'down';
+  const arrow = diff > 0 ? '▲' : '▼';
+  return `<div class="week-delta ${cls}">${arrow} ${Math.abs(pct)}% vs last wk</div>`;
+}
+
+function renderWeeklySummary() {
+  const cur = weekStats(0);
+  const prev = weekStats(1);
+  const cells = [
+    { label: 'Distance', value: `${cur.km.toFixed(1)} km`, d: deltaBadge(cur.km, prev.km) },
+    { label: 'Time',     value: `${cur.hours.toFixed(1)} h`, d: deltaBadge(cur.hours, prev.hours) },
+    { label: 'Sessions', value: cur.sessions, d: deltaBadge(cur.sessions, prev.sessions) },
+    { label: 'Load',     value: Math.round(cur.load), d: deltaBadge(cur.load, prev.load) },
+  ];
+  const el = document.getElementById('week-strip');
+  el.style.display = 'grid';
+  el.innerHTML = cells.map(c => `
+    <div class="week-cell">
+      <div class="week-label">${c.label}</div>
+      <div class="week-value">${c.value}</div>
+      ${c.d}
+    </div>`).join('');
+}
+
+// ── Personal bests ───────────────────────────────────────────────────────────
+function actKey(a) {
+  return a.activity_id != null ? String(a.activity_id) : `${a.date}_${a.idx}`;
+}
+
+function computePBs() {
+  const runTypes = new Set(['running', 'trail_running', 'treadmill_running']);
+  const all = sortedDays.flatMap(d => (garminData[d]?.activities || []).map((a, idx) => ({ ...a, date: d, idx })));
+  const pbs = {};
+
+  for (const a of all) {
+    if (runTypes.has(a.type) && a.distance_m >= 1000 && a.avg_pace_s_km) {
+      if (!pbs.pace || a.avg_pace_s_km < pbs.pace.value) pbs.pace = { value: a.avg_pace_s_km, act: a };
+    }
+    if (a.distance_m && (!pbs.distance || a.distance_m > pbs.distance.value)) pbs.distance = { value: a.distance_m, act: a };
+    if (a.duration_s && (!pbs.duration || a.duration_s > pbs.duration.value)) pbs.duration = { value: a.duration_s, act: a };
+    if (a.training_load && (!pbs.load || a.training_load > pbs.load.value)) pbs.load = { value: a.training_load, act: a };
+    if (a.calories && (!pbs.calories || a.calories > pbs.calories.value)) pbs.calories = { value: a.calories, act: a };
+  }
+  return pbs;
+}
+
+function renderPBs(pbs) {
+  const cards = [];
+  if (pbs.pace) cards.push({ label: 'Fastest Pace', value: fmtPace(pbs.pace.value), sub: `${pbs.pace.act.name || 'Run'} · ${pbs.pace.act.date}`, act: pbs.pace.act });
+  if (pbs.distance) cards.push({ label: 'Longest Distance', value: `${(pbs.distance.value / 1000).toFixed(2)} km`, sub: `${pbs.distance.act.name || 'Workout'} · ${pbs.distance.act.date}`, act: pbs.distance.act });
+  if (pbs.duration) cards.push({ label: 'Longest Duration', value: `${Math.round(pbs.duration.value / 60)} min`, sub: `${pbs.duration.act.name || 'Workout'} · ${pbs.duration.act.date}`, act: pbs.duration.act });
+  if (pbs.load) cards.push({ label: 'Highest Load', value: Math.round(pbs.load.value), sub: `${pbs.load.act.name || 'Workout'} · ${pbs.load.act.date}`, act: pbs.load.act });
+  if (pbs.calories) cards.push({ label: 'Most Calories', value: `${Math.round(pbs.calories.value)} kcal`, sub: `${pbs.calories.act.name || 'Workout'} · ${pbs.calories.act.date}`, act: pbs.calories.act });
+
+  const el = document.getElementById('pb-section');
+  if (!cards.length) { el.style.display = 'none'; return; }
+  el.style.display = 'grid';
+  el.innerHTML = cards.map(c => `
+    <div class="pb-card" onclick="openActivity('${actKey(c.act)}', '${c.act.date}')">
+      <div class="pb-label">🏆 ${c.label}</div>
+      <div class="pb-value">${c.value}</div>
+      <div class="pb-sub">${c.sub}</div>
+    </div>`).join('');
+}
+
+// ── Activity detail modal ────────────────────────────────────────────────────
+function findActivity(activityKey, date) {
+  const dayActs = garminData[date]?.activities || [];
+  const idx = dayActs.findIndex((a, i) => actKey({ ...a, date, idx: i }) === activityKey);
+  return idx === -1 ? null : { ...dayActs[idx], date, idx };
+}
+
+function openActivity(activityKey, date) {
+  const a = findActivity(activityKey, date);
+  if (!a) return;
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-title">${typeIcon[a.type] || typeIcon.default} ${a.name || 'Workout'}${pbIds.has(actKey(a)) ? ' 🏆' : ''}</div>
+    <div class="modal-date">${a.date}</div>
+    <div class="activity-chips">${activityChips(a)}</div>
+    <div class="modal-ai" id="modal-ai-box">
+      <div class="insight-box-header">
+        <span class="insight-box-label">AI Breakdown</span>
+        <button class="insight-refresh" onclick="refreshActivityInsight('${activityKey}', '${date}')" title="Refresh">↻</button>
+      </div>
+      <div id="modal-ai-content" class="insight-text"><span style="color:var(--muted)">Loading…</span></div>
+    </div>`;
+  document.getElementById('activity-modal').classList.add('open');
+  loadActivityInsight(a);
+}
+
+function closeActivity() {
+  document.getElementById('activity-modal').classList.remove('open');
+}
+
+function activityChips(a) {
+  const chips = [];
+  if (a.duration_s)      chips.push({ l: 'Duration', v: `${Math.round(a.duration_s / 60)} min` });
+  if (a.distance_m)      chips.push({ l: 'Distance', v: `${(a.distance_m / 1000).toFixed(2)} km` });
+  if (a.avg_pace_s_km)   chips.push({ l: 'Pace',     v: fmtPace(a.avg_pace_s_km) });
+  if (a.avg_hr)          chips.push({ l: 'Avg HR',   v: `${Math.round(a.avg_hr)} bpm` });
+  if (a.max_hr)          chips.push({ l: 'Max HR',   v: `${Math.round(a.max_hr)} bpm` });
+  if (a.calories)        chips.push({ l: 'Calories', v: `${Math.round(a.calories)} kcal` });
+  if (a.aerobic_te != null)   chips.push({ l: 'Aerobic TE',  v: Number(a.aerobic_te).toFixed(1) });
+  if (a.training_load != null) chips.push({ l: 'Load',       v: Math.round(a.training_load) });
+  if (a.elevation_gain_m != null) chips.push({ l: 'Elevation', v: `${Math.round(a.elevation_gain_m)} m` });
+  return chips.map(c => `<div class="chip"><span class="chip-label">${c.l}</span>${c.v}</div>`).join('');
+}
+
+async function loadActivityInsight(a) {
+  const cacheKey = 'ai_activity_' + actKey(a);
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    document.getElementById('modal-ai-content').innerHTML = marked.parse(cached);
+    return;
+  }
+  const apiKey = localStorage.getItem('claude_api_key');
+  if (!apiKey) {
+    document.getElementById('modal-ai-content').innerHTML =
+      '<span style="color:var(--muted)">Add your Claude API key in the Coach tab to unlock AI breakdowns.</span>';
+    return;
+  }
+  await fetchActivityInsight(a, cacheKey);
+}
+
+async function fetchActivityInsight(a, cacheKey) {
+  const apiKey = localStorage.getItem('claude_api_key');
+  if (!apiKey) return;
+  const proxyUrl = localStorage.getItem('claude_proxy_url') || DEFAULT_PROXY;
+  const dayData = garminData[a.date] || {};
+
+  const parts = [a.name || 'Workout'];
+  if (a.distance_m)      parts.push(`${(a.distance_m / 1000).toFixed(2)} km`);
+  if (a.duration_s)      parts.push(`${Math.round(a.duration_s / 60)} min`);
+  if (a.avg_pace_s_km)   parts.push(`pace ${fmtPace(a.avg_pace_s_km)}`);
+  if (a.avg_hr)          parts.push(`avg HR ${Math.round(a.avg_hr)} bpm`);
+  if (a.max_hr)          parts.push(`max HR ${Math.round(a.max_hr)} bpm`);
+  if (a.aerobic_te != null) parts.push(`aerobic TE ${Number(a.aerobic_te).toFixed(1)}`);
+  if (a.training_load != null) parts.push(`load ${Math.round(a.training_load)}`);
+  if (a.elevation_gain_m != null) parts.push(`elevation ${Math.round(a.elevation_gain_m)} m`);
+
+  const prompt = `Analyze this single workout: ${parts.join(', ')}. Context: VO2max ${dayData.vo2max ?? '?'}, resting HR ${dayData.resting_hr ?? '?'}, readiness that day ${dayData.training_readiness ?? '?'}/100. In 2-3 sentences, break down how good this session was, what training effect/zone it likely hit, and one specific tip for the next similar session.`;
+
+  try {
+    const res = await fetch(proxyUrl, {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || res.status); }
+    const data = await res.json();
+    const text = data.content[0].text;
+    localStorage.setItem(cacheKey, text);
+    const content = document.getElementById('modal-ai-content');
+    if (content) content.innerHTML = marked.parse(text);
+  } catch (e) {
+    const content = document.getElementById('modal-ai-content');
+    if (content) content.innerHTML = `<span style="color:var(--muted)">Could not load breakdown: ${e.message}</span>`;
+  }
+}
+
+async function refreshActivityInsight(activityKey, date) {
+  const a = findActivity(activityKey, date);
+  if (!a) return;
+  const cacheKey = 'ai_activity_' + actKey(a);
+  localStorage.removeItem(cacheKey);
+  const content = document.getElementById('modal-ai-content');
+  if (content) content.innerHTML = '<span style="color:var(--muted)">Refreshing…</span>';
+  await fetchActivityInsight(a, cacheKey);
+}
+
 // ── Data load ───────────────────────────────────────────────────────────────
 async function loadData() {
   try {
     const res = await fetch(DATA_URL + '?t=' + Date.now());
     garminData = await res.json();
     sortedDays = Object.keys(garminData).sort().reverse();
+    const pbs = computePBs();
+    pbIds = new Set(Object.values(pbs).map(p => actKey(p.act)));
     renderDashboard();
     renderTrends();
     renderActivities();
@@ -819,6 +1088,7 @@ async function loadData() {
 
 // ── Dashboard ───────────────────────────────────────────────────────────────
 function renderDashboard() {
+  renderWeeklySummary();
   const today = garminData[sortedDays[0]] || {};
   const metrics = [
     { label: 'Readiness',     value: today.training_readiness,                           unit: '',     max: 100, color: readinessColor(today.training_readiness) },
@@ -853,7 +1123,7 @@ function renderDashboard() {
   loadDailyInsight(today);
 
   const allActs = sortedDays
-    .flatMap(d => (garminData[d]?.activities || []).map(a => ({ ...a, date: d })))
+    .flatMap(d => (garminData[d]?.activities || []).map((a, idx) => ({ ...a, date: d, idx })))
     .slice(0, 5);
   document.getElementById('recent-activities').innerHTML =
     allActs.map(activityHTML).join('') || '<p style="color:var(--muted)">No recent activities.</p>';
@@ -948,33 +1218,24 @@ function fmtPace(s) {
 
 function activityHTML(a) {
   const icon = typeIcon[a.type] || typeIcon.default;
-  const chips = [];
-  if (a.duration_s)      chips.push({ l: 'Duration', v: `${Math.round(a.duration_s / 60)} min` });
-  if (a.distance_m)      chips.push({ l: 'Distance', v: `${(a.distance_m / 1000).toFixed(2)} km` });
-  if (a.avg_pace_s_km)   chips.push({ l: 'Pace',     v: fmtPace(a.avg_pace_s_km) });
-  if (a.avg_hr)          chips.push({ l: 'Avg HR',   v: `${Math.round(a.avg_hr)} bpm` });
-  if (a.max_hr)          chips.push({ l: 'Max HR',   v: `${Math.round(a.max_hr)} bpm` });
-  if (a.calories)        chips.push({ l: 'Calories', v: `${Math.round(a.calories)} kcal` });
-  if (a.aerobic_te != null)   chips.push({ l: 'Aerobic TE',  v: Number(a.aerobic_te).toFixed(1) });
-  if (a.training_load != null) chips.push({ l: 'Load',       v: Math.round(a.training_load) });
-  if (a.elevation_gain_m != null) chips.push({ l: 'Elevation', v: `${Math.round(a.elevation_gain_m)} m` });
-
+  const isPB = pbIds.has(actKey(a));
   return `
-    <div class="activity">
+    <div class="activity" onclick="openActivity('${actKey(a)}', '${a.date}')" style="cursor:pointer">
       <div class="activity-icon">${icon}</div>
       <div class="activity-info">
-        <div class="activity-name">${a.name || 'Workout'}</div>
+        <div class="activity-name">${a.name || 'Workout'}${isPB ? ' 🏆' : ''}</div>
         <div class="activity-meta">${a.date}</div>
         <div class="activity-chips">
-          ${chips.map(c => `<div class="chip"><span class="chip-label">${c.l}</span>${c.v}</div>`).join('')}
+          ${activityChips(a)}
         </div>
       </div>
     </div>`;
 }
 
 function renderActivities() {
+  renderPBs(computePBs());
   const all = sortedDays.flatMap(d =>
-    (garminData[d]?.activities || []).map(a => ({ ...a, date: d }))
+    (garminData[d]?.activities || []).map((a, idx) => ({ ...a, date: d, idx }))
   );
   document.getElementById('all-activities').innerHTML =
     all.map(activityHTML).join('') || '<p style="color:var(--muted)">No activities yet.</p>';
