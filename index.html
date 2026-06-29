@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Garmin AI Coach</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
   :root {
     --bg: #0f1117;
@@ -138,9 +139,18 @@
   .coach-layout { display: grid; grid-template-columns: 1fr 300px; gap: 16px; }
   .chat-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; height: 520px; }
   .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-  .msg { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
+  .msg { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
   .msg.user { background: var(--blue); color: white; align-self: flex-end; border-radius: 12px 12px 4px 12px; }
-  .msg.ai { background: var(--surface2); align-self: flex-start; border-radius: 12px 12px 12px 4px; white-space: pre-wrap; }
+  .msg.ai { background: var(--surface2); align-self: flex-start; border-radius: 12px 12px 12px 4px; }
+  .msg.ai p { margin-bottom: 8px; }
+  .msg.ai p:last-child { margin-bottom: 0; }
+  .msg.ai ul, .msg.ai ol { padding-left: 18px; margin-bottom: 8px; }
+  .msg.ai li { margin-bottom: 4px; }
+  .msg.ai strong { color: var(--text); font-weight: 700; }
+  .msg.ai em { color: var(--muted); }
+  .msg.ai h1, .msg.ai h2, .msg.ai h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; margin-top: 10px; }
+  .msg.ai code { background: var(--surface); border-radius: 4px; padding: 1px 5px; font-family: monospace; font-size: 12px; }
+  .msg.thinking { opacity: 0.5; font-style: italic; }
   .chat-input { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); }
   .chat-input textarea {
     flex: 1; background: var(--surface2); border: 1px solid var(--border);
@@ -354,7 +364,10 @@
         <h3>Claude API Key</h3>
         <p>Get a key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue)">console.anthropic.com</a>. Stored in your browser only.</p>
         <input type="password" id="api-key-input" placeholder="sk-ant-…" />
-        <button class="btn" style="width:100%" onclick="saveKey()">Save Key</button>
+        <h3 style="margin-top:14px">Proxy URL</h3>
+        <p>Required for browser use. Deploy <code style="font-size:11px;color:var(--blue)">worker.js</code> on Cloudflare Workers (free) and paste the URL here.</p>
+        <input type="url" id="proxy-url-input" placeholder="https://your-worker.workers.dev" />
+        <button class="btn" style="width:100%" onclick="saveSettings()">Save</button>
         <div id="key-status" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
       </div>
       <div class="api-panel" style="margin-top:14px">
@@ -393,6 +406,7 @@
 
 <script>
 const DATA_URL = 'https://raw.githubusercontent.com/maxim1711/garmin-ai/main/garmin/data.json';
+const DEFAULT_PROXY = 'https://garmin-ai.maxim-ruigrok.workers.dev';
 let garminData = {};
 let sortedDays = [];
 
@@ -594,19 +608,28 @@ function showTab(id, el) {
   if (el) el.classList.add('active');
 }
 
-// ── API Key ──────────────────────────────────────────────────────────────────
-function saveKey() {
+// ── Settings ─────────────────────────────────────────────────────────────────
+function saveSettings() {
   const key = document.getElementById('api-key-input').value.trim();
-  if (!key) return;
-  localStorage.setItem('claude_api_key', key);
-  document.getElementById('key-status').textContent = '✓ Key saved';
-  document.getElementById('api-key-input').value = '••••••••••••••••';
+  const proxy = document.getElementById('proxy-url-input').value.trim();
+  let saved = [];
+  if (key) { localStorage.setItem('claude_api_key', key); saved.push('key'); }
+  if (proxy) { localStorage.setItem('claude_proxy_url', proxy); saved.push('proxy URL'); }
+  if (saved.length) {
+    document.getElementById('key-status').textContent = '✓ Saved: ' + saved.join(' + ');
+    if (key) document.getElementById('api-key-input').value = '';
+    if (proxy) document.getElementById('proxy-url-input').value = '';
+  }
 }
 
 window.addEventListener('load', () => {
-  if (localStorage.getItem('claude_api_key')) {
-    document.getElementById('api-key-input').placeholder = '••• key saved •••';
-    document.getElementById('key-status').textContent = '✓ Key loaded';
+  const hasKey = !!localStorage.getItem('claude_api_key');
+  const hasProxy = !!localStorage.getItem('claude_proxy_url');
+  if (hasKey) document.getElementById('api-key-input').placeholder = '••• key saved •••';
+  if (hasProxy) document.getElementById('proxy-url-input').placeholder = '••• proxy saved •••';
+  if (hasKey || hasProxy) {
+    const parts = [hasKey && 'key', hasProxy && 'proxy'].filter(Boolean);
+    document.getElementById('key-status').textContent = '✓ Loaded: ' + parts.join(' + ');
   }
 });
 
@@ -634,10 +657,14 @@ Guidelines:
 - Always reference specific numbers from the data in your answers`;
 }
 
-function addMessage(role, text) {
+function addMessage(role, text, thinking = false) {
   const div = document.createElement('div');
-  div.className = 'msg ' + (role === 'user' ? 'user' : 'ai');
-  div.textContent = text;
+  div.className = 'msg ' + (role === 'user' ? 'user' : 'ai') + (thinking ? ' thinking' : '');
+  if (role === 'user') {
+    div.textContent = text;
+  } else {
+    div.innerHTML = thinking ? text : marked.parse(text);
+  }
   const box = document.getElementById('chat-messages');
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
@@ -660,16 +687,17 @@ async function sendMessage() {
 
   const btn = document.getElementById('send-btn');
   btn.disabled = true;
-  const thinking = addMessage('ai', '…');
+  const thinking = addMessage('ai', '…', true);
+
+  const proxyUrl = localStorage.getItem('claude_proxy_url') || DEFAULT_PROXY;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(proxyUrl, {
       method: 'POST',
       headers: {
         'x-api-key': key,
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
-        'anthropic-dangerous-direct-browser-calls': 'true'
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
@@ -686,10 +714,12 @@ async function sendMessage() {
 
     const data = await res.json();
     const reply = data.content[0].text;
-    thinking.textContent = reply;
+    thinking.classList.remove('thinking');
+    thinking.innerHTML = marked.parse(reply);
     chatHistory.push({ role: 'assistant', content: reply });
   } catch(e) {
     const isNetwork = e instanceof TypeError && e.message === 'Failed to fetch';
+    thinking.classList.remove('thinking');
     thinking.textContent = isNetwork
       ? '❌ Network error — make sure you\'re using the HTTPS site (GitHub Pages), not a local server.'
       : '❌ Error: ' + e.message;
