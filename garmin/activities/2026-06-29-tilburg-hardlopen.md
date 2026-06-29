@@ -1,0 +1,13 @@
+# Tilburg Hardlopen — 2026-06-29
+- Type: running
+- Start: 2026-06-29 13:12:11
+- Duration: 43m
+- Distance: 9.06 km
+- Avg HR: 155.0 bpm
+- Max HR: 182.0 bpm
+- Calories: 700.0 kcal
+- Avg pace: 4:45 /km
+- Elevation gain: 36 m
+- Aerobic TE: 3.9
+- Anaerobic TE: 0.7
+- Training load: 153
