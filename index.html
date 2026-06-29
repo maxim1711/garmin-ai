@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Garmin AI Coach</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1d27">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AI Coach">
+<link rel="apple-touch-icon" href="icon.svg">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
@@ -368,6 +374,21 @@
       <div class="trend-selected" id="vo2Chart-sel"></div>
       <div class="trend-wrap"><canvas id="vo2Chart"></canvas></div>
     </div>
+    <div class="trend-box" style="grid-column: 1 / -1">
+      <h3>Training Load &amp; Form</h3>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">
+        <span style="color:#448aff">●</span> Fitness (CTL 42d) &ensp;
+        <span style="color:#ff9100">●</span> Fatigue (ATL 7d) &ensp;
+        <span style="color:#00e676">■</span>/<span style="color:#ff5252">■</span> Form (TSB, bars)
+      </div>
+      <div class="trend-selected" id="formChart-sel"></div>
+      <div class="trend-wrap" style="height:220px"><canvas id="formChart"></canvas></div>
+    </div>
+    <div class="trend-box">
+      <h3>Sleep Stages</h3>
+      <div class="trend-selected" id="sleepStagesChart-sel"></div>
+      <div class="trend-wrap"><canvas id="sleepStagesChart"></canvas></div>
+    </div>
   </div>
 </div>
 
@@ -608,6 +629,177 @@ async function refreshInsight() {
   await fetchInsight(garminData[dataDate] || {}, cacheKey);
 }
 
+// ── Training Load & Form ─────────────────────────────────────────────────────
+function computeFormMetrics() {
+  const allDays = Object.keys(garminData).sort();
+  let ctl = 0, atl = 0;
+  const result = {};
+  for (const day of allDays) {
+    const load = (garminData[day]?.activities || [])
+      .reduce((s, a) => s + (a.training_load || 0), 0);
+    // Exponential moving averages: CTL = 42d fitness, ATL = 7d fatigue
+    ctl = ctl * (1 - 1/42) + load * (1/42);
+    atl = atl * (1 - 1/7)  + load * (1/7);
+    result[day] = {
+      ctl: Math.round(ctl * 10) / 10,
+      atl: Math.round(atl * 10) / 10,
+      tsb: Math.round((ctl - atl) * 10) / 10,
+    };
+  }
+  return result;
+}
+
+function makeFormChart(id, formData) {
+  if (chartInstances[id]) chartInstances[id].destroy();
+  const days   = Object.keys(formData).sort().slice(-30);
+  const labels = days.map(d => d.slice(5));
+  const ctl    = days.map(d => formData[d].ctl);
+  const atl    = days.map(d => formData[d].atl);
+  const tsb    = days.map(d => formData[d].tsb);
+
+  const ctx = document.getElementById(id).getContext('2d');
+  chartInstances[id] = new Chart(ctx, {
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Form (TSB)',
+          type: 'bar',
+          data: tsb,
+          backgroundColor: tsb.map(v => v >= 0 ? '#00e67633' : '#ff525233'),
+          borderColor:      tsb.map(v => v >= 0 ? '#00e676'   : '#ff5252'),
+          borderWidth: 1,
+          borderRadius: 2,
+          yAxisID: 'tsb',
+          order: 2,
+        },
+        {
+          label: 'Fitness (CTL)',
+          type: 'line',
+          data: ctl,
+          borderColor: '#448aff',
+          backgroundColor: 'transparent',
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+          yAxisID: 'load',
+          order: 1,
+        },
+        {
+          label: 'Fatigue (ATL)',
+          type: 'line',
+          data: atl,
+          borderColor: '#ff9100',
+          backgroundColor: 'transparent',
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+          yAxisID: 'load',
+          order: 0,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1d27',
+          borderColor: '#2e3149',
+          borderWidth: 1,
+          titleColor: '#8b8fa8',
+          bodyColor: '#e8eaf6',
+          padding: 10,
+          callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}` }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#8b8fa8', font: { size: 10 } }, grid: { color: '#2e3149' } },
+        load: {
+          type: 'linear', position: 'left', min: 0,
+          ticks: { color: '#448aff', font: { size: 10 } },
+          grid: { color: '#2e3149' },
+        },
+        tsb: {
+          type: 'linear', position: 'right',
+          ticks: { color: '#00e676', font: { size: 10 } },
+          grid: { display: false },
+        }
+      },
+      onClick: (_e, elements) => {
+        if (!elements.length) return;
+        const i = elements[0].index;
+        const el = document.getElementById(id + '-sel');
+        if (el) el.textContent =
+          `${labels[i]} — Fitness: ${ctl[i].toFixed(1)}, Fatigue: ${atl[i].toFixed(1)}, Form: ${tsb[i].toFixed(1)}`;
+      }
+    }
+  });
+}
+
+function makeSleepStagesChart(id, days) {
+  if (chartInstances[id]) chartInstances[id].destroy();
+  const labels = days.map(d => d.slice(5));
+  const deep  = days.map(d => garminData[d]?.sleep_deep_h  || null);
+  const rem   = days.map(d => garminData[d]?.sleep_rem_h   || null);
+  const light = days.map(d => {
+    const total = garminData[d]?.sleep_duration_h;
+    const dh = garminData[d]?.sleep_deep_h || 0;
+    const rh = garminData[d]?.sleep_rem_h  || 0;
+    return total ? Math.max(0, Math.round((total - dh - rh) * 10) / 10) : null;
+  });
+
+  const ctx = document.getElementById(id).getContext('2d');
+  chartInstances[id] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Deep',  data: deep,  backgroundColor: '#448aff99', borderColor: '#448aff', borderWidth: 1 },
+        { label: 'REM',   data: rem,   backgroundColor: '#00e67699', borderColor: '#00e676', borderWidth: 1 },
+        { label: 'Light', data: light, backgroundColor: '#8b8fa844', borderColor: '#8b8fa8', borderWidth: 1 },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true, position: 'top',
+          labels: { color: '#8b8fa8', boxWidth: 10, font: { size: 10 }, padding: 8 }
+        },
+        tooltip: {
+          backgroundColor: '#1a1d27',
+          borderColor: '#2e3149',
+          borderWidth: 1,
+          titleColor: '#8b8fa8',
+          bodyColor: '#e8eaf6',
+          padding: 10,
+          callbacks: { label: c => c.parsed.y != null ? `${c.dataset.label}: ${c.parsed.y.toFixed(1)}h` : '—' }
+        }
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: '#8b8fa8', font: { size: 10 } }, grid: { color: '#2e3149' } },
+        y: {
+          stacked: true, min: 0, max: 10,
+          ticks: { color: '#8b8fa8', font: { size: 10 }, callback: v => v + 'h' },
+          grid: { color: '#2e3149' }
+        }
+      },
+      onClick: (_e, elements) => {
+        if (!elements.length) return;
+        const i = elements[0].index;
+        const el = document.getElementById(id + '-sel');
+        if (el) el.textContent =
+          `${labels[i]} — Deep: ${deep[i] ?? '—'}h, REM: ${rem[i] ?? '—'}h, Light: ${light[i] ?? '—'}h`;
+      }
+    }
+  });
+}
+
 // ── Data load ───────────────────────────────────────────────────────────────
 async function loadData() {
   try {
@@ -735,6 +927,8 @@ function renderTrends() {
   makeChart('sleepDurChart', labels, days.map(d => garminData[d]?.sleep_duration_h || null),'#00e676', 0,  10,    'h');
   makeChart('hrvChart',      labels, days.map(d => garminData[d]?.hrv_ms),                 '#ffd740', 0,   120,   'ms');
   makeChart('vo2Chart',      labels, days.map(d => garminData[d]?.vo2max ?? null),          '#e040fb', 30,  80,    'ml/kg/min');
+  makeFormChart('formChart', computeFormMetrics());
+  makeSleepStagesChart('sleepStagesChart', days);
 }
 
 // ── Activities ───────────────────────────────────────────────────────────────
@@ -992,6 +1186,9 @@ async function refreshData() {
   btn.style.pointerEvents = '';
 }
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
 loadData();
 </script>
 </body>
