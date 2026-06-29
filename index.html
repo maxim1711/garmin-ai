@@ -26,6 +26,10 @@
   header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
   header h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
   header span { color: var(--muted); font-size: 14px; }
+  #refresh-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 6px 14px; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+  #refresh-btn:hover { border-color: var(--blue); color: var(--text); }
+  #refresh-btn.spinning { animation: spin 1s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
   .tabs { display: flex; gap: 4px; padding: 16px 24px 0; border-bottom: 1px solid var(--border); }
   .tab { padding: 10px 20px; cursor: pointer; font-size: 14px; color: var(--muted); border-bottom: 2px solid transparent; transition: all 0.2s; }
@@ -114,6 +118,7 @@
 <header>
   <h1>⚡ Garmin AI Coach</h1>
   <span id="last-updated">Loading…</span>
+  <button id="refresh-btn" onclick="refreshData()" title="Fetch latest data">↻ Refresh</button>
 </header>
 
 <div class="tabs">
@@ -443,6 +448,17 @@ function quickAsk(q) {
 
 function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+async function refreshData() {
+  const btn = document.getElementById('refresh-btn');
+  btn.style.pointerEvents = 'none';
+  btn.textContent = '↻';
+  btn.classList.add('spinning');
+  await loadData();
+  btn.classList.remove('spinning');
+  btn.textContent = '↻ Refresh';
+  btn.style.pointerEvents = '';
 }
 
 loadData();
