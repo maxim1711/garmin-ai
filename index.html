@@ -199,6 +199,24 @@
   .loading-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--blue); animation: pulse 1s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
+  /* ── Fitness & Insight panel ── */
+  .insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .insight-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 16px; }
+  .insight-box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .insight-box-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .insight-refresh { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0; line-height: 1; transition: color 0.2s; }
+  .insight-refresh:hover { color: var(--text); }
+  .race-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .race-item { background: var(--surface2); border-radius: 8px; padding: 10px 12px; }
+  .race-dist { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .race-time { font-size: 18px; font-weight: 700; margin-top: 3px; }
+  .insight-text { font-size: 13px; line-height: 1.7; }
+  .insight-text p { margin-bottom: 6px; }
+  .insight-text p:last-child { margin-bottom: 0; }
+  .insight-text strong { font-weight: 700; }
+  .insight-text ul, .insight-text ol { padding-left: 16px; margin-bottom: 6px; }
+  .insight-text li { margin-bottom: 3px; }
+
   /* ── Bottom nav (mobile only) ── */
   .bottom-nav { display: none; }
 
@@ -257,6 +275,9 @@
     .trend-box { padding: 14px 12px; }
     .trend-wrap { height: 160px; }
 
+    /* Insight grid: full width stack */
+    .insight-grid { grid-template-columns: 1fr; }
+
     /* Activities: chips wrap naturally, nothing hidden */
     .activity { padding: 12px 12px; border-radius: 10px; }
     .activity-name { font-size: 14px; }
@@ -288,6 +309,10 @@
   <div id="dash-loading" class="status"><span class="loading-dot"></span> Loading your data…</div>
   <div id="dash-content" style="display:none">
     <div class="cards" id="metric-cards"></div>
+    <div class="insight-grid" id="fitness-panel" style="display:none">
+      <div class="insight-box" id="vo2-box"></div>
+      <div class="insight-box" id="daily-insight-box"></div>
+    </div>
     <div class="charts">
       <div class="chart-box">
         <h3>Training Readiness (14d)</h3>
@@ -337,6 +362,11 @@
       <h3>HRV</h3>
       <div class="trend-selected" id="hrvChart-sel"></div>
       <div class="trend-wrap"><canvas id="hrvChart"></canvas></div>
+    </div>
+    <div class="trend-box">
+      <h3>VO2max</h3>
+      <div class="trend-selected" id="vo2Chart-sel"></div>
+      <div class="trend-wrap"><canvas id="vo2Chart"></canvas></div>
     </div>
   </div>
 </div>
@@ -431,6 +461,153 @@ function stressColor(v) {
   if (v < 25) return 'green'; if (v < 50) return 'yellow'; if (v < 75) return 'orange'; return 'red';
 }
 
+// ── Fitness helpers ──────────────────────────────────────────────────────────
+function vo2Level(v) {
+  if (v >= 65) return { label: 'Elite',         color: 'purple' };
+  if (v >= 55) return { label: 'Excellent',      color: 'green'  };
+  if (v >= 45) return { label: 'Very Good',      color: 'blue'   };
+  if (v >= 38) return { label: 'Good',           color: 'yellow' };
+  if (v >= 30) return { label: 'Fair',           color: 'orange' };
+  return               { label: 'Below Average', color: 'red'    };
+}
+
+function racePredictions(vo2max) {
+  // 5K time estimated from VO2max (empirical, based on Daniels VDOT tables)
+  const s5k = 65000 / vo2max;
+  // Riegel formula for other distances
+  const riegel = d => s5k * Math.pow(d / 5, 1.06);
+  const fmt = s => {
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = Math.round(s % 60);
+    return h > 0
+      ? `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
+      : `${m}:${String(sec).padStart(2,'0')}`;
+  };
+  return [
+    { dist: '5K',       time: fmt(s5k)          },
+    { dist: '10K',      time: fmt(riegel(10))    },
+    { dist: 'Half',     time: fmt(riegel(21.1))  },
+    { dist: 'Marathon', time: fmt(riegel(42.2))  },
+  ];
+}
+
+function renderVO2maxCard(vo2max, training_status, training_load_7d) {
+  const box = document.getElementById('vo2-box');
+  if (vo2max == null) {
+    box.innerHTML = `
+      <div class="insight-box-header"><span class="insight-box-label">Fitness Profile</span></div>
+      <p style="color:var(--muted);font-size:13px">VO2max not yet available — will appear after the next Garmin sync.</p>`;
+    return;
+  }
+  const lv = vo2Level(vo2max);
+  const preds = racePredictions(vo2max);
+  const statusRow = training_status
+    ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;margin-bottom:14px">
+         Status: <span style="color:var(--text)">${training_status.replace(/_/g,' ')}</span>
+         ${training_load_7d ? `&ensp;·&ensp;7d load: <span style="color:var(--text)">${Math.round(training_load_7d)}</span>` : ''}
+       </div>`
+    : '<div style="margin-bottom:14px"></div>';
+
+  box.innerHTML = `
+    <div class="insight-box-header"><span class="insight-box-label">Fitness Profile</span></div>
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <span style="font-size:40px;font-weight:700;color:var(--${lv.color})">${vo2max}</span>
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">VO2max</div>
+        <div style="font-size:13px;font-weight:600;color:var(--${lv.color})">${lv.label}</div>
+      </div>
+    </div>
+    ${statusRow}
+    <div class="race-grid">
+      ${preds.map(p => `
+        <div class="race-item">
+          <div class="race-dist">${p.dist}</div>
+          <div class="race-time ${lv.color}">${p.time}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+async function loadDailyInsight(todayData) {
+  const box = document.getElementById('daily-insight-box');
+  const dataDate = sortedDays[0];
+  const realToday = new Date().toISOString().slice(0, 10);
+  const label = dataDate === realToday ? "Today's Insight" : `${dataDate} Insight`;
+  const cacheKey = 'ai_insight_' + dataDate;
+  const cached = localStorage.getItem(cacheKey);
+
+  box.innerHTML = `
+    <div class="insight-box-header">
+      <span class="insight-box-label">${label}</span>
+      <button class="insight-refresh" onclick="refreshInsight()" title="Refresh insight">↻</button>
+    </div>
+    <div id="insight-content" class="insight-text">
+      ${cached
+        ? marked.parse(cached)
+        : '<span style="color:var(--muted)">Loading…</span>'}
+    </div>`;
+
+  if (!cached) {
+    const apiKey = localStorage.getItem('claude_api_key');
+    if (!apiKey) {
+      document.getElementById('insight-content').innerHTML =
+        '<span style="color:var(--muted)">Add your Claude API key in the Coach tab to unlock daily insights.</span>';
+      return;
+    }
+    await fetchInsight(todayData, cacheKey);
+  }
+}
+
+async function fetchInsight(todayData, cacheKey) {
+  const apiKey = localStorage.getItem('claude_api_key');
+  if (!apiKey) return;
+  const proxyUrl = localStorage.getItem('claude_proxy_url') || DEFAULT_PROXY;
+
+  const acts = todayData.activities || [];
+  const hasActs = acts.length > 0;
+  const actStr = acts.map(a => {
+    const parts = [a.name];
+    if (a.distance_m)    parts.push(`${(a.distance_m / 1000).toFixed(1)} km`);
+    if (a.avg_pace_s_km) parts.push(fmtPace(a.avg_pace_s_km));
+    if (a.avg_hr)        parts.push(`avg HR ${Math.round(a.avg_hr)} bpm`);
+    if (a.aerobic_te)    parts.push(`aerobic TE ${a.aerobic_te.toFixed(1)}`);
+    if (a.training_load) parts.push(`load ${Math.round(a.training_load)}`);
+    return parts.join(', ');
+  }).join(' | ');
+
+  const prompt = hasActs
+    ? `The athlete completed: ${actStr}. Context: readiness ${todayData.training_readiness ?? '?'}/100, sleep score ${todayData.sleep_score ?? '?'}/100, HRV ${todayData.hrv_ms ?? '?'} ms, VO2max ${todayData.vo2max ?? '?'}. In 2–3 sentences, assess the workout quality and what specific fitness adaptation or benefit it creates.`
+    : `No training today. Stats: readiness ${todayData.training_readiness ?? '?'}/100, body battery peak ${todayData.body_battery_hi ?? '?'}, HRV ${todayData.hrv_ms ?? '?'} ms, sleep score ${todayData.sleep_score ?? '?'}/100, VO2max ${todayData.vo2max ?? '?'}. In 2–3 sentences, recommend whether and what to train today — be specific about type, duration and intensity.`;
+
+  try {
+    const res = await fetch(proxyUrl, {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || res.status); }
+    const data = await res.json();
+    const text = data.content[0].text;
+    localStorage.setItem(cacheKey, text);
+    const content = document.getElementById('insight-content');
+    if (content) content.innerHTML = marked.parse(text);
+  } catch (e) {
+    const content = document.getElementById('insight-content');
+    if (content) content.innerHTML = `<span style="color:var(--muted)">Could not load insight: ${e.message}</span>`;
+  }
+}
+
+async function refreshInsight() {
+  const dataDate = sortedDays[0];
+  const cacheKey = 'ai_insight_' + dataDate;
+  localStorage.removeItem(cacheKey);
+  const content = document.getElementById('insight-content');
+  if (content) content.innerHTML = '<span style="color:var(--muted)">Refreshing…</span>';
+  await fetchInsight(garminData[dataDate] || {}, cacheKey);
+}
+
 // ── Data load ───────────────────────────────────────────────────────────────
 async function loadData() {
   try {
@@ -477,6 +654,11 @@ function renderDashboard() {
   makeChart('sleepChart',     labels, days14.map(d => garminData[d]?.sleep_score),        '#00e676', 0, 100, '');
   makeChart('batteryChart',   labels, days14.map(d => garminData[d]?.body_battery_hi),    '#ffd740', 0, 100, '');
   makeChart('stressChart',    labels, days14.map(d => garminData[d]?.avg_stress),         '#ff5252', 0, 100, '');
+
+  // Fitness & AI insight panel
+  document.getElementById('fitness-panel').style.display = 'grid';
+  renderVO2maxCard(today.vo2max, today.training_status, today.training_load_7d);
+  loadDailyInsight(today);
 
   const allActs = sortedDays
     .flatMap(d => (garminData[d]?.activities || []).map(a => ({ ...a, date: d })))
@@ -552,6 +734,7 @@ function renderTrends() {
   makeChart('stepsChart',    labels, days.map(d => garminData[d]?.steps),                  '#448aff', 0,   30000, '');
   makeChart('sleepDurChart', labels, days.map(d => garminData[d]?.sleep_duration_h || null),'#00e676', 0,  10,    'h');
   makeChart('hrvChart',      labels, days.map(d => garminData[d]?.hrv_ms),                 '#ffd740', 0,   120,   'ms');
+  makeChart('vo2Chart',      labels, days.map(d => garminData[d]?.vo2max ?? null),          '#e040fb', 30,  80,    'ml/kg/min');
 }
 
 // ── Activities ───────────────────────────────────────────────────────────────
