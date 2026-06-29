@@ -19,97 +19,241 @@
     --red: #ff5252;
     --blue: #448aff;
     --purple: #e040fb;
+    --nav-h: 64px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
 
-  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
-  header h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
-  header span { color: var(--muted); font-size: 14px; }
-  #refresh-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 6px 14px; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 18px; font-weight: 700; }
+  #last-updated { color: var(--muted); font-size: 12px; }
+  #refresh-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 44px; min-height: 44px;
+  }
   #refresh-btn:hover { border-color: var(--blue); color: var(--text); }
   #refresh-btn.spinning { animation: spin 1s linear infinite; }
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-  .tabs { display: flex; gap: 4px; padding: 16px 24px 0; border-bottom: 1px solid var(--border); }
-  .tab { padding: 10px 20px; cursor: pointer; font-size: 14px; color: var(--muted); border-bottom: 2px solid transparent; transition: all 0.2s; }
+  /* ── Top tabs (desktop) ── */
+  .tabs {
+    display: flex; gap: 4px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .tab {
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
   .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
 
-  .page { display: none; padding: 24px; max-width: 1100px; margin: 0 auto; }
+  /* ── Pages ── */
+  .page { display: none; padding: 20px; max-width: 1100px; margin: 0 auto; }
   .page.active { display: block; }
 
-  /* Cards */
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 16px; }
-  .card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-  .card-value { font-size: 32px; font-weight: 700; line-height: 1; }
+  /* ── Metric cards ── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 16px; }
+  .card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .card-value { font-size: 30px; font-weight: 700; line-height: 1; }
   .card-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
   .card-bar { height: 4px; border-radius: 2px; margin-top: 12px; background: var(--border); overflow: hidden; }
   .card-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s; }
 
-  .green { color: var(--green); } .yellow { color: var(--yellow); } .orange { color: var(--orange); } .red { color: var(--red); }
-  .bg-green { background: var(--green); } .bg-yellow { background: var(--yellow); } .bg-orange { background: var(--orange); } .bg-red { background: var(--red); }
+  .green  { color: var(--green);  } .yellow { color: var(--yellow); }
+  .orange { color: var(--orange); } .red    { color: var(--red);    }
+  .blue   { color: var(--blue);   } .purple { color: var(--purple); }
+  .muted  { color: var(--muted);  }
+  .bg-green  { background: var(--green);  } .bg-yellow { background: var(--yellow); }
+  .bg-orange { background: var(--orange); } .bg-red    { background: var(--red);    }
+  .bg-blue   { background: var(--blue);   } .bg-purple { background: var(--purple); }
 
-  /* Charts */
-  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
-  .chart-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-  .chart-box h3 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
-  .chart-wrap { position: relative; height: 160px; }
+  /* ── Charts ── */
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .chart-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .chart-box h3 { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .chart-selected {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    min-height: 22px; margin-bottom: 8px;
+    transition: opacity 0.2s;
+  }
+  .chart-wrap { position: relative; height: 140px; }
 
-  /* Activities */
-  .section-title { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+  /* ── Activities ── */
+  .section-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
   .activity-list { display: flex; flex-direction: column; gap: 10px; }
-  .activity { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: flex; align-items: center; gap: 16px; }
-  .activity-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-  .activity-info { flex: 1; }
-  .activity-name { font-size: 15px; font-weight: 600; }
-  .activity-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .activity-stats { display: flex; gap: 20px; text-align: right; }
-  .activity-stat-val { font-size: 14px; font-weight: 600; }
-  .activity-stat-label { font-size: 11px; color: var(--muted); }
+  .activity {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .activity-icon {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .activity-info { flex: 1; min-width: 0; }
+  .activity-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .activity-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .activity-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+  .chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .chip-label { color: var(--muted); margin-right: 3px; }
 
-  /* AI Coach */
-  .coach-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+  /* ── AI Coach ── */
+  .coach-layout { display: grid; grid-template-columns: 1fr 300px; gap: 16px; }
   .chat-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; height: 520px; }
-  .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
-  .msg { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
   .msg.user { background: var(--blue); color: white; align-self: flex-end; border-radius: 12px 12px 4px 12px; }
   .msg.ai { background: var(--surface2); align-self: flex-start; border-radius: 12px 12px 12px 4px; white-space: pre-wrap; }
-  .chat-input { display: flex; gap: 10px; padding: 16px; border-top: 1px solid var(--border); }
-  .chat-input textarea { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px 14px; font-size: 14px; resize: none; height: 44px; font-family: inherit; }
+  .chat-input { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); }
+  .chat-input textarea {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 10px 12px;
+    font-size: 14px; resize: none; height: 44px; font-family: inherit;
+  }
   .chat-input textarea:focus { outline: none; border-color: var(--blue); }
-  .btn { background: var(--blue); color: white; border: none; border-radius: 8px; padding: 10px 18px; font-size: 14px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+  .btn {
+    background: var(--blue); color: white; border: none;
+    border-radius: 8px; padding: 10px 16px; font-size: 14px;
+    cursor: pointer; font-weight: 600; white-space: nowrap;
+    min-height: 44px;
+  }
   .btn:hover { opacity: 0.85; }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
 
-  .api-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; height: fit-content; }
-  .api-panel h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
-  .api-panel p { font-size: 13px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
-  .api-panel input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 13px; margin-bottom: 10px; font-family: monospace; }
+  .api-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .api-panel h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+  .api-panel p { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+  .api-panel input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 10px 12px;
+    font-size: 13px; margin-bottom: 10px; font-family: monospace; min-height: 44px;
+  }
   .api-panel input:focus { outline: none; border-color: var(--blue); }
-  .quick-prompts { margin-top: 20px; }
-  .quick-prompts h4 { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-  .quick-btn { display: block; width: 100%; text-align: left; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 13px; cursor: pointer; margin-bottom: 8px; transition: border-color 0.2s; }
+  .quick-prompts { margin-top: 16px; }
+  .quick-prompts h4 { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .quick-btn {
+    display: block; width: 100%; text-align: left;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 10px 12px;
+    font-size: 13px; cursor: pointer; margin-bottom: 8px;
+    transition: border-color 0.2s; min-height: 44px;
+  }
   .quick-btn:hover { border-color: var(--blue); }
 
-  /* Trends page */
-  .trends-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .trend-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-  .trend-box h3 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
-  .trend-wrap { position: relative; height: 200px; }
+  /* ── Trends ── */
+  .trends-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .trend-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .trend-box h3 { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .trend-selected { font-size: 14px; font-weight: 600; color: var(--text); min-height: 22px; margin-bottom: 8px; }
+  .trend-wrap { position: relative; height: 180px; }
 
-  /* Status */
+  /* ── Status ── */
   .status { text-align: center; padding: 60px 20px; color: var(--muted); }
   .loading-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--blue); animation: pulse 1s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-  @media (max-width: 700px) {
-    .charts { grid-template-columns: 1fr; }
-    .trends-grid { grid-template-columns: 1fr; }
+  /* ── Bottom nav (mobile only) ── */
+  .bottom-nav { display: none; }
+
+  /* ════════════════════════════
+     Mobile — Samsung Galaxy S24
+     ════════════════════════════ */
+  @media (max-width: 768px) {
+    .tabs { display: none; }
+
+    .bottom-nav {
+      display: flex;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .nav-item {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 8px 4px;
+      background: transparent; border: none;
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer; gap: 3px;
+      min-height: 56px;
+      transition: color 0.15s;
+    }
+    .nav-item.active { color: var(--blue); }
+    .nav-icon { font-size: 22px; line-height: 1; }
+
+    .page {
+      padding: 14px 14px calc(var(--nav-h) + 14px + env(safe-area-inset-bottom));
+    }
+
+    header { padding: 10px 14px; }
+    header h1 { font-size: 16px; }
+    #last-updated { display: none; }
+    #refresh-btn { padding: 6px 10px; font-size: 12px; }
+
+    /* Cards: 2 columns */
+    .cards { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+    .card { padding: 14px 12px; border-radius: 10px; }
+    .card-label { font-size: 10px; }
+    .card-value { font-size: 26px; }
+
+    /* Charts: full width stack */
+    .charts { grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
+    .chart-box { padding: 14px 12px; }
+    .chart-wrap { height: 150px; }
+
+    /* Trends: full width stack */
+    .trends-grid { grid-template-columns: 1fr; gap: 12px; }
+    .trend-box { padding: 14px 12px; }
+    .trend-wrap { height: 160px; }
+
+    /* Activities: chips wrap naturally, nothing hidden */
+    .activity { padding: 12px 12px; border-radius: 10px; }
+    .activity-name { font-size: 14px; }
+
+    /* Coach: stack layout */
     .coach-layout { grid-template-columns: 1fr; }
-    .cards { grid-template-columns: repeat(2, 1fr); }
-    .activity-stats { display: none; }
+    .chat-box { height: calc(100dvh - var(--nav-h) - 180px); min-height: 320px; }
   }
 </style>
 </head>
@@ -121,11 +265,12 @@
   <button id="refresh-btn" onclick="refreshData()" title="Fetch latest data">↻ Refresh</button>
 </header>
 
+<!-- Top tabs (desktop) -->
 <div class="tabs">
-  <div class="tab active" onclick="showTab('dashboard')">Dashboard</div>
-  <div class="tab" onclick="showTab('trends')">Trends</div>
-  <div class="tab" onclick="showTab('activities')">Activities</div>
-  <div class="tab" onclick="showTab('coach')">AI Coach</div>
+  <div class="tab active" onclick="showTab('dashboard', this)">Dashboard</div>
+  <div class="tab" onclick="showTab('trends', this)">Trends</div>
+  <div class="tab" onclick="showTab('activities', this)">Activities</div>
+  <div class="tab" onclick="showTab('coach', this)">AI Coach</div>
 </div>
 
 <!-- DASHBOARD -->
@@ -134,10 +279,26 @@
   <div id="dash-content" style="display:none">
     <div class="cards" id="metric-cards"></div>
     <div class="charts">
-      <div class="chart-box"><h3>Training Readiness (14d)</h3><div class="chart-wrap"><canvas id="readinessChart"></canvas></div></div>
-      <div class="chart-box"><h3>Sleep Score (14d)</h3><div class="chart-wrap"><canvas id="sleepChart"></canvas></div></div>
-      <div class="chart-box"><h3>Body Battery Peak (14d)</h3><div class="chart-wrap"><canvas id="batteryChart"></canvas></div></div>
-      <div class="chart-box"><h3>Stress Level (14d)</h3><div class="chart-wrap"><canvas id="stressChart"></canvas></div></div>
+      <div class="chart-box">
+        <h3>Training Readiness (14d)</h3>
+        <div class="chart-selected" id="readinessChart-sel"></div>
+        <div class="chart-wrap"><canvas id="readinessChart"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <h3>Sleep Score (14d)</h3>
+        <div class="chart-selected" id="sleepChart-sel"></div>
+        <div class="chart-wrap"><canvas id="sleepChart"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <h3>Body Battery Peak (14d)</h3>
+        <div class="chart-selected" id="batteryChart-sel"></div>
+        <div class="chart-wrap"><canvas id="batteryChart"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <h3>Stress Level (14d)</h3>
+        <div class="chart-selected" id="stressChart-sel"></div>
+        <div class="chart-wrap"><canvas id="stressChart"></canvas></div>
+      </div>
     </div>
     <p class="section-title">Recent Activities</p>
     <div class="activity-list" id="recent-activities"></div>
@@ -147,10 +308,26 @@
 <!-- TRENDS -->
 <div id="trends" class="page">
   <div class="trends-grid">
-    <div class="trend-box"><h3>Resting Heart Rate</h3><div class="trend-wrap"><canvas id="hrChart"></canvas></div></div>
-    <div class="trend-box"><h3>Steps</h3><div class="trend-wrap"><canvas id="stepsChart"></canvas></div></div>
-    <div class="trend-box"><h3>Sleep Duration (h)</h3><div class="trend-wrap"><canvas id="sleepDurChart"></canvas></div></div>
-    <div class="trend-box"><h3>HRV (ms)</h3><div class="trend-wrap"><canvas id="hrvChart"></canvas></div></div>
+    <div class="trend-box">
+      <h3>Resting Heart Rate</h3>
+      <div class="trend-selected" id="hrChart-sel"></div>
+      <div class="trend-wrap"><canvas id="hrChart"></canvas></div>
+    </div>
+    <div class="trend-box">
+      <h3>Steps</h3>
+      <div class="trend-selected" id="stepsChart-sel"></div>
+      <div class="trend-wrap"><canvas id="stepsChart"></canvas></div>
+    </div>
+    <div class="trend-box">
+      <h3>Sleep Duration</h3>
+      <div class="trend-selected" id="sleepDurChart-sel"></div>
+      <div class="trend-wrap"><canvas id="sleepDurChart"></canvas></div>
+    </div>
+    <div class="trend-box">
+      <h3>HRV</h3>
+      <div class="trend-selected" id="hrvChart-sel"></div>
+      <div class="trend-wrap"><canvas id="hrvChart"></canvas></div>
+    </div>
   </div>
 </div>
 
@@ -175,12 +352,12 @@
     <div>
       <div class="api-panel">
         <h3>Claude API Key</h3>
-        <p>Get a free key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue)">console.anthropic.com</a>. Stored locally in your browser only.</p>
+        <p>Get a key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue)">console.anthropic.com</a>. Stored in your browser only.</p>
         <input type="password" id="api-key-input" placeholder="sk-ant-…" />
         <button class="btn" style="width:100%" onclick="saveKey()">Save Key</button>
         <div id="key-status" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
       </div>
-      <div class="api-panel" style="margin-top:16px">
+      <div class="api-panel" style="margin-top:14px">
         <div class="quick-prompts">
           <h4>Quick Questions</h4>
           <button class="quick-btn" onclick="quickAsk('Should I train hard today or rest?')">Should I train hard today or rest?</button>
@@ -193,6 +370,26 @@
     </div>
   </div>
 </div>
+
+<!-- Bottom nav (mobile) -->
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="showTab('dashboard', this)">
+    <span class="nav-icon">📊</span>
+    <span>Dashboard</span>
+  </button>
+  <button class="nav-item" onclick="showTab('trends', this)">
+    <span class="nav-icon">📈</span>
+    <span>Trends</span>
+  </button>
+  <button class="nav-item" onclick="showTab('activities', this)">
+    <span class="nav-icon">🏃</span>
+    <span>Activities</span>
+  </button>
+  <button class="nav-item" onclick="showTab('coach', this)">
+    <span class="nav-icon">🤖</span>
+    <span>Coach</span>
+  </button>
+</nav>
 
 <script>
 const DATA_URL = 'https://raw.githubusercontent.com/maxim1711/garmin-ai/main/garmin/data.json';
@@ -217,10 +414,6 @@ function stressColor(v) {
   if (v < 25) return 'green'; if (v < 50) return 'yellow'; if (v < 75) return 'orange'; return 'red';
 }
 
-function colorVar(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim();
-}
-
 // ── Data load ───────────────────────────────────────────────────────────────
 async function loadData() {
   try {
@@ -242,14 +435,14 @@ async function loadData() {
 function renderDashboard() {
   const today = garminData[sortedDays[0]] || {};
   const metrics = [
-    { label: 'Training Readiness', value: today.training_readiness, unit: '', max: 100, color: readinessColor(today.training_readiness) },
-    { label: 'Sleep Score', value: today.sleep_score, unit: '', max: 100, color: sleepColor(today.sleep_score) },
-    { label: 'Sleep', value: today.sleep_duration_h || null, unit: 'h', max: 10, color: sleepColor(today.sleep_score) },
-    { label: 'Body Battery', value: today.body_battery_hi, unit: '', sub: `Low: ${today.body_battery_lo ?? '?'}`, max: 100, color: batteryColor(today.body_battery_hi) },
-    { label: 'Avg Stress', value: today.avg_stress, unit: '', max: 100, color: stressColor(today.avg_stress) },
-    { label: 'Steps', value: today.steps ? (today.steps / 1000).toFixed(1) : null, unit: 'k', max: 20, color: 'blue' },
-    { label: 'Resting HR', value: today.resting_hr, unit: ' bpm', max: 80, color: 'purple' },
-    { label: 'HRV', value: today.hrv_ms, unit: ' ms', max: 120, color: 'blue' },
+    { label: 'Readiness',     value: today.training_readiness,                           unit: '',     max: 100, color: readinessColor(today.training_readiness) },
+    { label: 'Sleep Score',   value: today.sleep_score,                                  unit: '',     max: 100, color: sleepColor(today.sleep_score) },
+    { label: 'Sleep',         value: today.sleep_duration_h || null,                     unit: 'h',    max: 10,  color: sleepColor(today.sleep_score) },
+    { label: 'Body Battery',  value: today.body_battery_hi,                              unit: '',     max: 100, color: batteryColor(today.body_battery_hi), sub: `Low: ${today.body_battery_lo ?? '?'}` },
+    { label: 'Stress',        value: today.avg_stress,                                   unit: '',     max: 100, color: stressColor(today.avg_stress) },
+    { label: 'Steps',         value: today.steps ? (today.steps / 1000).toFixed(1) : null, unit: 'k', max: 20,  color: 'blue' },
+    { label: 'Resting HR',    value: today.resting_hr,                                   unit: ' bpm', max: 80,  color: 'purple' },
+    { label: 'HRV',           value: today.hrv_ms,                                       unit: ' ms',  max: 120, color: 'blue' },
   ];
 
   document.getElementById('metric-cards').innerHTML = metrics.map(m => `
@@ -263,35 +456,72 @@ function renderDashboard() {
 
   const days14 = sortedDays.slice(0, 14).reverse();
   const labels = days14.map(d => d.slice(5));
+  makeChart('readinessChart', labels, days14.map(d => garminData[d]?.training_readiness), '#448aff', 0, 100, '');
+  makeChart('sleepChart',     labels, days14.map(d => garminData[d]?.sleep_score),        '#00e676', 0, 100, '');
+  makeChart('batteryChart',   labels, days14.map(d => garminData[d]?.body_battery_hi),    '#ffd740', 0, 100, '');
+  makeChart('stressChart',    labels, days14.map(d => garminData[d]?.avg_stress),         '#ff5252', 0, 100, '');
 
-  makeChart('readinessChart', labels, days14.map(d => garminData[d]?.training_readiness), '#448aff', 0, 100);
-  makeChart('sleepChart', labels, days14.map(d => garminData[d]?.sleep_score), '#00e676', 0, 100);
-  makeChart('batteryChart', labels, days14.map(d => garminData[d]?.body_battery_hi), '#ffd740', 0, 100);
-  makeChart('stressChart', labels, days14.map(d => garminData[d]?.avg_stress), '#ff5252', 0, 100);
-
-  const allActs = sortedDays.flatMap(d =>
-    (garminData[d]?.activities || []).map(a => ({ ...a, date: d }))
-  ).slice(0, 5);
-  document.getElementById('recent-activities').innerHTML = allActs.map(a => activityHTML(a)).join('') || '<p style="color:var(--muted)">No recent activities.</p>';
+  const allActs = sortedDays
+    .flatMap(d => (garminData[d]?.activities || []).map(a => ({ ...a, date: d })))
+    .slice(0, 5);
+  document.getElementById('recent-activities').innerHTML =
+    allActs.map(activityHTML).join('') || '<p style="color:var(--muted)">No recent activities.</p>';
 }
 
 // ── Charts ───────────────────────────────────────────────────────────────────
 const chartInstances = {};
-function makeChart(id, labels, data, color, min, max) {
+
+function makeChart(id, labels, data, color, min, max, unit) {
   if (chartInstances[id]) chartInstances[id].destroy();
   const ctx = document.getElementById(id).getContext('2d');
+
   chartInstances[id] = new Chart(ctx, {
     type: 'line',
     data: {
       labels,
-      datasets: [{ data, borderColor: color, backgroundColor: color + '22', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: color, spanGaps: true }]
+      datasets: [{
+        data,
+        borderColor: color,
+        backgroundColor: color + '22',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 5,
+        pointHoverRadius: 10,
+        pointBackgroundColor: color,
+        spanGaps: true
+      }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1d27',
+          borderColor: '#2e3149',
+          borderWidth: 1,
+          titleColor: '#8b8fa8',
+          bodyColor: '#e8eaf6',
+          padding: 10,
+          displayColors: false,
+          callbacks: {
+            label: ctx => ctx.parsed.y != null
+              ? ctx.parsed.y + (unit ? ' ' + unit : '')
+              : '—'
+          }
+        }
+      },
+      interaction: { mode: 'index', intersect: false },
       scales: {
         x: { ticks: { color: '#8b8fa8', font: { size: 11 } }, grid: { color: '#2e3149' } },
         y: { min, max, ticks: { color: '#8b8fa8', font: { size: 11 } }, grid: { color: '#2e3149' } }
+      },
+      onClick: (_evt, elements) => {
+        if (!elements.length) return;
+        const i = elements[0].index;
+        const val = data[i];
+        const el = document.getElementById(id + '-sel');
+        if (el) el.textContent = labels[i] + ': ' + (val != null ? val + (unit ? ' ' + unit : '') : '—');
       }
     }
   });
@@ -301,29 +531,49 @@ function makeChart(id, labels, data, color, min, max) {
 function renderTrends() {
   const days = sortedDays.slice(0, 30).reverse();
   const labels = days.map(d => d.slice(5));
-  makeChart('hrChart', labels, days.map(d => garminData[d]?.resting_hr), '#e040fb', 30, 80);
-  makeChart('stepsChart', labels, days.map(d => garminData[d]?.steps), '#448aff', 0, 30000);
-  makeChart('sleepDurChart', labels, days.map(d => garminData[d]?.sleep_duration_h || null), '#00e676', 0, 10);
-  makeChart('hrvChart', labels, days.map(d => garminData[d]?.hrv_ms), '#ffd740', 0, 120);
+  makeChart('hrChart',       labels, days.map(d => garminData[d]?.resting_hr),             '#e040fb', 30,  80,    'bpm');
+  makeChart('stepsChart',    labels, days.map(d => garminData[d]?.steps),                  '#448aff', 0,   30000, '');
+  makeChart('sleepDurChart', labels, days.map(d => garminData[d]?.sleep_duration_h || null),'#00e676', 0,  10,    'h');
+  makeChart('hrvChart',      labels, days.map(d => garminData[d]?.hrv_ms),                 '#ffd740', 0,   120,   'ms');
 }
 
 // ── Activities ───────────────────────────────────────────────────────────────
-const typeIcon = { running: '🏃', cycling: '🚴', swimming: '🏊', walking: '🚶', strength_training: '🏋️', yoga: '🧘', hiking: '⛰️', default: '⚡' };
+const typeIcon = {
+  running: '🏃', trail_running: '🏔️', treadmill_running: '🏃',
+  cycling: '🚴', swimming: '🏊', open_water_swimming: '🌊',
+  walking: '🚶', hiking: '⛰️',
+  strength_training: '🏋️', yoga: '🧘',
+  bouldering: '🧗', climbing: '🧗',
+  default: '⚡'
+};
+
+function fmtPace(s) {
+  const m = Math.floor(s / 60), sec = s % 60;
+  return `${m}:${String(sec).padStart(2, '0')} /km`;
+}
 
 function activityHTML(a) {
   const icon = typeIcon[a.type] || typeIcon.default;
-  const dur = a.duration_s ? `${Math.round(a.duration_s / 60)} min` : '—';
-  const dist = a.distance_m ? `${(a.distance_m / 1000).toFixed(2)} km` : null;
+  const chips = [];
+  if (a.duration_s)      chips.push({ l: 'Duration', v: `${Math.round(a.duration_s / 60)} min` });
+  if (a.distance_m)      chips.push({ l: 'Distance', v: `${(a.distance_m / 1000).toFixed(2)} km` });
+  if (a.avg_pace_s_km)   chips.push({ l: 'Pace',     v: fmtPace(a.avg_pace_s_km) });
+  if (a.avg_hr)          chips.push({ l: 'Avg HR',   v: `${Math.round(a.avg_hr)} bpm` });
+  if (a.max_hr)          chips.push({ l: 'Max HR',   v: `${Math.round(a.max_hr)} bpm` });
+  if (a.calories)        chips.push({ l: 'Calories', v: `${Math.round(a.calories)} kcal` });
+  if (a.aerobic_te != null)   chips.push({ l: 'Aerobic TE',  v: Number(a.aerobic_te).toFixed(1) });
+  if (a.training_load != null) chips.push({ l: 'Load',       v: Math.round(a.training_load) });
+  if (a.elevation_gain_m != null) chips.push({ l: 'Elevation', v: `${Math.round(a.elevation_gain_m)} m` });
+
   return `
     <div class="activity">
       <div class="activity-icon">${icon}</div>
       <div class="activity-info">
         <div class="activity-name">${a.name || 'Workout'}</div>
-        <div class="activity-meta">${a.date} · ${dur}${dist ? ' · ' + dist : ''}</div>
-      </div>
-      <div class="activity-stats">
-        ${a.avg_hr ? `<div><div class="activity-stat-val">${Math.round(a.avg_hr)}</div><div class="activity-stat-label">avg HR</div></div>` : ''}
-        ${a.calories ? `<div><div class="activity-stat-val">${Math.round(a.calories)}</div><div class="activity-stat-label">kcal</div></div>` : ''}
+        <div class="activity-meta">${a.date}</div>
+        <div class="activity-chips">
+          ${chips.map(c => `<div class="chip"><span class="chip-label">${c.l}</span>${c.v}</div>`).join('')}
+        </div>
       </div>
     </div>`;
 }
@@ -332,15 +582,16 @@ function renderActivities() {
   const all = sortedDays.flatMap(d =>
     (garminData[d]?.activities || []).map(a => ({ ...a, date: d }))
   );
-  document.getElementById('all-activities').innerHTML = all.map(activityHTML).join('') || '<p style="color:var(--muted)">No activities yet.</p>';
+  document.getElementById('all-activities').innerHTML =
+    all.map(activityHTML).join('') || '<p style="color:var(--muted)">No activities yet.</p>';
 }
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
-function showTab(id) {
+function showTab(id, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab, .nav-item').forEach(t => t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  event.target.classList.add('active');
+  if (el) el.classList.add('active');
 }
 
 // ── API Key ──────────────────────────────────────────────────────────────────
@@ -363,8 +614,11 @@ window.addEventListener('load', () => {
 function buildSystemPrompt() {
   const recent = sortedDays.slice(0, 7).map(d => {
     const r = garminData[d];
-    const acts = (r.activities || []).map(a => `${a.name} (${Math.round((a.duration_s||0)/60)}min)`).join(', ');
-    return `${d}: readiness=${r.training_readiness??'?'}, sleep=${r.sleep_duration_h??'?'}h (score ${r.sleep_score??'?'}), HRV=${r.hrv_ms??'?'}ms, body_battery=${r.body_battery_hi??'?'}→${r.body_battery_lo??'?'}, stress=${r.avg_stress??'?'}, steps=${r.steps??'?'}, resting_hr=${r.resting_hr??'?'}bpm${acts ? ', activities: ' + acts : ''}`;
+    const acts = (r.activities || []).map(a => {
+      const pace = a.avg_pace_s_km ? ` pace ${fmtPace(a.avg_pace_s_km)}` : '';
+      return `${a.name} (${Math.round((a.duration_s||0)/60)}min${pace})`;
+    }).join(', ');
+    return `${d}: readiness=${r.training_readiness??'?'}, sleep=${r.sleep_duration_h??'?'}h (score ${r.sleep_score??'?'}), HRV=${r.hrv_ms??'?'}ms, body_battery=${r.body_battery_hi??'?'}→${r.body_battery_lo??'?'}, stress=${r.avg_stress??'?'}, steps=${r.steps??'?'}, resting_hr=${r.resting_hr??'?'}bpm, vo2max=${r.vo2max??'?'}, training_status=${r.training_status??'?'}, training_load_7d=${r.training_load_7d??'?'}${acts ? ', activities: '+acts : ''}`;
   }).join('\n');
 
   return `You are a personal AI endurance and fitness coach. You have access to the athlete's recent Garmin data. Be concise, practical, and evidence-based. Use the data to give specific, personalised advice.
@@ -453,11 +707,9 @@ function handleKey(e) {
 async function refreshData() {
   const btn = document.getElementById('refresh-btn');
   btn.style.pointerEvents = 'none';
-  btn.textContent = '↻';
   btn.classList.add('spinning');
   await loadData();
   btn.classList.remove('spinning');
-  btn.textContent = '↻ Refresh';
   btn.style.pointerEvents = '';
 }
 
