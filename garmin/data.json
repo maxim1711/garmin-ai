@@ -558,9 +558,9 @@
   "2026-06-29": {
     "date": "2026-06-29",
     "resting_hr": 49,
-    "steps": 331,
-    "avg_stress": 11,
-    "body_battery_lo": 82,
+    "steps": 18303,
+    "avg_stress": 28,
+    "body_battery_lo": 15,
     "body_battery_hi": 88,
     "sleep_duration_h": 7.4,
     "sleep_score": 89,
