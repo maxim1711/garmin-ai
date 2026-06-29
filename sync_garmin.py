@@ -346,7 +346,7 @@ def main() -> None:
     days_data = []
 
     for i in range(args.days):
-        day = today - timedelta(days=i + 1)   # yesterday first
+        day = today - timedelta(days=i)
         print(f"Fetching {day} …", end=" ", flush=True)
         data = fetch_day(client, day)
         days_data.append(data)
