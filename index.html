@@ -134,10 +134,10 @@
   <div id="dash-content" style="display:none">
     <div class="cards" id="metric-cards"></div>
     <div class="charts">
-      <div class="chart-box"><h3>Training Readiness (7d)</h3><div class="chart-wrap"><canvas id="readinessChart"></canvas></div></div>
-      <div class="chart-box"><h3>Sleep Score (7d)</h3><div class="chart-wrap"><canvas id="sleepChart"></canvas></div></div>
-      <div class="chart-box"><h3>Body Battery Peak (7d)</h3><div class="chart-wrap"><canvas id="batteryChart"></canvas></div></div>
-      <div class="chart-box"><h3>Stress Level (7d)</h3><div class="chart-wrap"><canvas id="stressChart"></canvas></div></div>
+      <div class="chart-box"><h3>Training Readiness (14d)</h3><div class="chart-wrap"><canvas id="readinessChart"></canvas></div></div>
+      <div class="chart-box"><h3>Sleep Score (14d)</h3><div class="chart-wrap"><canvas id="sleepChart"></canvas></div></div>
+      <div class="chart-box"><h3>Body Battery Peak (14d)</h3><div class="chart-wrap"><canvas id="batteryChart"></canvas></div></div>
+      <div class="chart-box"><h3>Stress Level (14d)</h3><div class="chart-wrap"><canvas id="stressChart"></canvas></div></div>
     </div>
     <p class="section-title">Recent Activities</p>
     <div class="activity-list" id="recent-activities"></div>
@@ -261,13 +261,13 @@ function renderDashboard() {
     </div>
   `).join('');
 
-  const days7 = sortedDays.slice(0, 7).reverse();
-  const labels = days7.map(d => d.slice(5));
+  const days14 = sortedDays.slice(0, 14).reverse();
+  const labels = days14.map(d => d.slice(5));
 
-  makeChart('readinessChart', labels, days7.map(d => garminData[d]?.training_readiness), '#448aff', 0, 100);
-  makeChart('sleepChart', labels, days7.map(d => garminData[d]?.sleep_score), '#00e676', 0, 100);
-  makeChart('batteryChart', labels, days7.map(d => garminData[d]?.body_battery_hi), '#ffd740', 0, 100);
-  makeChart('stressChart', labels, days7.map(d => garminData[d]?.avg_stress), '#ff5252', 0, 100);
+  makeChart('readinessChart', labels, days14.map(d => garminData[d]?.training_readiness), '#448aff', 0, 100);
+  makeChart('sleepChart', labels, days14.map(d => garminData[d]?.sleep_score), '#00e676', 0, 100);
+  makeChart('batteryChart', labels, days14.map(d => garminData[d]?.body_battery_hi), '#ffd740', 0, 100);
+  makeChart('stressChart', labels, days14.map(d => garminData[d]?.avg_stress), '#ff5252', 0, 100);
 
   const allActs = sortedDays.flatMap(d =>
     (garminData[d]?.activities || []).map(a => ({ ...a, date: d }))
@@ -299,7 +299,7 @@ function makeChart(id, labels, data, color, min, max) {
 
 // ── Trends ───────────────────────────────────────────────────────────────────
 function renderTrends() {
-  const days = sortedDays.slice(0, 14).reverse();
+  const days = sortedDays.slice(0, 30).reverse();
   const labels = days.map(d => d.slice(5));
   makeChart('hrChart', labels, days.map(d => garminData[d]?.resting_hr), '#e040fb', 30, 80);
   makeChart('stepsChart', labels, days.map(d => garminData[d]?.steps), '#448aff', 0, 30000);
