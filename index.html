@@ -1018,24 +1018,28 @@ async function loadActivityInsight(a) {
 }
 
 async function fetchActivityInsight(a, cacheKey) {
-  const apiKey = localStorage.getItem('claude_api_key');
-  if (!apiKey) return;
-  const proxyUrl = localStorage.getItem('claude_proxy_url') || DEFAULT_PROXY;
-  const dayData = garminData[a.date] || {};
-
-  const parts = [a.name || 'Workout'];
-  if (a.distance_m)      parts.push(`${(a.distance_m / 1000).toFixed(2)} km`);
-  if (a.duration_s)      parts.push(`${Math.round(a.duration_s / 60)} min`);
-  if (a.avg_pace_s_km)   parts.push(`pace ${fmtPace(a.avg_pace_s_km)}`);
-  if (a.avg_hr)          parts.push(`avg HR ${Math.round(a.avg_hr)} bpm`);
-  if (a.max_hr)          parts.push(`max HR ${Math.round(a.max_hr)} bpm`);
-  if (a.aerobic_te != null) parts.push(`aerobic TE ${Number(a.aerobic_te).toFixed(1)}`);
-  if (a.training_load != null) parts.push(`load ${Math.round(a.training_load)}`);
-  if (a.elevation_gain_m != null) parts.push(`elevation ${Math.round(a.elevation_gain_m)} m`);
-
-  const prompt = `Analyze this single workout: ${parts.join(', ')}. Context: VO2max ${dayData.vo2max ?? '?'}, resting HR ${dayData.resting_hr ?? '?'}, readiness that day ${dayData.training_readiness ?? '?'}/100. In 2-3 sentences, break down how good this session was, what training effect/zone it likely hit, and one specific tip for the next similar session.`;
-
+  const showError = msg => {
+    const el = document.getElementById('modal-ai-content');
+    if (el) el.innerHTML = `<span style="color:var(--red)">${msg}</span>`;
+  };
   try {
+    const apiKey = localStorage.getItem('claude_api_key');
+    if (!apiKey) return;
+    const proxyUrl = localStorage.getItem('claude_proxy_url') || DEFAULT_PROXY;
+    const dayData = garminData[a.date] || {};
+
+    const parts = [a.name || 'Workout'];
+    if (a.distance_m)      parts.push(`${(a.distance_m / 1000).toFixed(2)} km`);
+    if (a.duration_s)      parts.push(`${Math.round(a.duration_s / 60)} min`);
+    if (a.avg_pace_s_km)   parts.push(`pace ${fmtPace(a.avg_pace_s_km)}`);
+    if (a.avg_hr)          parts.push(`avg HR ${Math.round(a.avg_hr)} bpm`);
+    if (a.max_hr)          parts.push(`max HR ${Math.round(a.max_hr)} bpm`);
+    if (a.aerobic_te != null) parts.push(`aerobic TE ${Number(a.aerobic_te).toFixed(1)}`);
+    if (a.training_load != null) parts.push(`load ${Math.round(a.training_load)}`);
+    if (a.elevation_gain_m != null) parts.push(`elevation ${Math.round(a.elevation_gain_m)} m`);
+
+    const prompt = `Analyze this single workout: ${parts.join(', ')}. Context: VO2max ${dayData.vo2max ?? '?'}, resting HR ${dayData.resting_hr ?? '?'}, readiness that day ${dayData.training_readiness ?? '?'}/100. In 2-3 sentences, break down how good this session was, what training effect/zone it likely hit, and one specific tip for the next similar session.`;
+
     const res = await fetch(proxyUrl, {
       method: 'POST',
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -1045,15 +1049,18 @@ async function fetchActivityInsight(a, cacheKey) {
         messages: [{ role: 'user', content: prompt }]
       })
     });
-    if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || res.status); }
+    if (!res.ok) {
+      let msg;
+      try { msg = (await res.json()).error?.message; } catch { msg = null; }
+      throw new Error(msg || `HTTP ${res.status}`);
+    }
     const data = await res.json();
     const text = data.content[0].text;
     localStorage.setItem(cacheKey, text);
-    const content = document.getElementById('modal-ai-content');
-    if (content) content.innerHTML = marked.parse(text);
+    const el = document.getElementById('modal-ai-content');
+    if (el) el.innerHTML = marked.parse(text);
   } catch (e) {
-    const content = document.getElementById('modal-ai-content');
-    if (content) content.innerHTML = `<span style="color:var(--muted)">Could not load breakdown: ${e.message}</span>`;
+    showError(`Could not load breakdown: ${e.message}`);
   }
 }
 

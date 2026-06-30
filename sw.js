@@ -1,4 +1,4 @@
-const CACHE = 'garmin-ai-v1';
+const CACHE = 'garmin-ai-v2';
 const SHELL = ['./', './index.html', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
