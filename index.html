@@ -42,7 +42,21 @@
     position: sticky; top: 0; z-index: 10;
   }
   header h1 { font-size: 18px; font-weight: 700; }
-  #last-updated { color: var(--muted); font-size: 12px; }
+  #last-updated {
+    font-size: 12px; font-weight: 600;
+    padding: 4px 11px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--muted); white-space: nowrap;
+  }
+  #last-updated .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  #last-updated.fresh-green  { color: var(--green);  border-color: #00e67644; }
+  #last-updated.fresh-green  .dot { background: var(--green);  }
+  #last-updated.fresh-yellow { color: var(--yellow); border-color: #ffd74044; }
+  #last-updated.fresh-yellow .dot { background: var(--yellow); }
+  #last-updated.fresh-orange { color: var(--orange); border-color: #ff910044; }
+  #last-updated.fresh-orange .dot { background: var(--orange); }
+  #last-updated.fresh-red    { color: var(--red);    border-color: #ff525244; }
+  #last-updated.fresh-red    .dot { background: var(--red); animation: pulse 1.2s infinite; }
   #refresh-btn {
     background: transparent;
     border: 1px solid var(--border);
@@ -238,6 +252,27 @@
   .modal-date { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
   .modal-ai { background: var(--surface2); border-radius: 10px; padding: 14px; margin-top: 16px; }
 
+  /* ── Toast (refresh status / errors) ── */
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+    max-width: 90vw; width: max-content;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 18px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    z-index: 300; opacity: 0; pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s;
+    font-size: 14px; line-height: 1.5;
+    display: flex; align-items: center; gap: 12px;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  #toast.err  { border-color: #ff525266; }
+  #toast.ok   { border-color: #00e67666; }
+  #toast .toast-action {
+    background: var(--blue); color: #fff; border: none; border-radius: 8px;
+    padding: 7px 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  #toast .toast-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; }
+
   /* ── Fitness & Insight panel ── */
   .insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
   .insight-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 16px; }
@@ -293,9 +328,9 @@
       padding: 14px 14px calc(var(--nav-h) + 14px + env(safe-area-inset-bottom));
     }
 
-    header { padding: 10px 14px; }
-    header h1 { font-size: 16px; }
-    #last-updated { display: none; }
+    header { padding: 10px 12px; gap: 8px; }
+    header h1 { font-size: 15px; }
+    #last-updated { font-size: 11px; padding: 3px 9px; }
     #refresh-btn { padding: 6px 10px; font-size: 12px; }
 
     /* Cards: 2 columns */
@@ -328,6 +363,10 @@
     .pb-value { font-size: 17px; }
 
     .modal-sheet { padding: 10px 16px 20px; max-height: 90vh; }
+
+    /* Toast clears the bottom nav on mobile */
+    #toast { bottom: calc(var(--nav-h) + 16px + env(safe-area-inset-bottom)); left: 12px; right: 12px; transform: translateY(20px); width: auto; max-width: none; }
+    #toast.show { transform: translateY(0); }
 
     /* Activities: chips wrap naturally, nothing hidden */
     .activity { padding: 12px 12px; border-radius: 10px; }
@@ -495,6 +534,9 @@
   </div>
 </div>
 
+<!-- Toast -->
+<div id="toast"></div>
+
 <!-- Bottom nav (mobile) -->
 <nav class="bottom-nav">
   <button class="nav-item active" onclick="showTab('dashboard', this)">
@@ -538,6 +580,53 @@ function batteryColor(v) {
 function stressColor(v) {
   if (v == null) return 'muted';
   if (v < 25) return 'green'; if (v < 50) return 'yellow'; if (v < 75) return 'orange'; return 'red';
+}
+
+// ── Data freshness & latest-available helpers ────────────────────────────────
+// Most recent day with a usable value for `field`. `valid` filters out
+// placeholder values (e.g. 0h sleep on a day that hasn't synced yet).
+function latestWith(field, valid) {
+  for (const d of sortedDays) {
+    const v = garminData[d]?.[field];
+    if (v != null && (!valid || valid(v))) return { value: v, date: d };
+  }
+  return { value: null, date: null };
+}
+
+function dayDiff(dateStr) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const d = new Date(dateStr); d.setHours(0, 0, 0, 0);
+  return Math.round((today - d) / 86400000);
+}
+
+function setFreshness(dateStr) {
+  const el = document.getElementById('last-updated');
+  const days = dayDiff(dateStr);
+  let text, cls;
+  if (days <= 0)      { text = 'Today';        cls = 'fresh-green';  }
+  else if (days === 1){ text = 'Yesterday';    cls = 'fresh-yellow'; }
+  else if (days <= 6) { text = days + 'd ago';  cls = 'fresh-orange'; }
+  else                { text = days + 'd ago';  cls = 'fresh-red';    }
+  el.className = cls;
+  el.innerHTML = `<span class="dot"></span>${text}`;
+  el.title = 'Latest Garmin data: ' + dateStr;
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg, { type = '', action, actionLabel, persist = false } = {}) {
+  const el = document.getElementById('toast');
+  clearTimeout(toastTimer);
+  if (action) window.__toastAction = action;
+  el.className = 'show' + (type ? ' ' + type : '');
+  el.innerHTML = `<span>${msg}</span>` +
+    (actionLabel ? `<button class="toast-action" onclick="(window.__toastAction||(()=>{}))();hideToast()">${actionLabel}</button>` : '') +
+    `<button class="toast-close" onclick="hideToast()" title="Dismiss">✕</button>`;
+  if (!persist) toastTimer = setTimeout(hideToast, 5000);
+}
+function hideToast() {
+  clearTimeout(toastTimer);
+  document.getElementById('toast').className = '';
 }
 
 // ── Fitness helpers ──────────────────────────────────────────────────────────
@@ -1085,7 +1174,7 @@ async function loadData() {
     renderDashboard();
     renderTrends();
     renderActivities();
-    document.getElementById('last-updated').textContent = 'Updated ' + sortedDays[0];
+    setFreshness(sortedDays[0]);
     document.getElementById('dash-loading').style.display = 'none';
     document.getElementById('dash-content').style.display = 'block';
   } catch(e) {
@@ -1096,24 +1185,46 @@ async function loadData() {
 // ── Dashboard ───────────────────────────────────────────────────────────────
 function renderDashboard() {
   renderWeeklySummary();
-  const today = garminData[sortedDays[0]] || {};
-  const metrics = [
-    { label: 'Readiness',     value: today.training_readiness,                           unit: '',     max: 100, color: readinessColor(today.training_readiness) },
-    { label: 'Sleep Score',   value: today.sleep_score,                                  unit: '',     max: 100, color: sleepColor(today.sleep_score) },
-    { label: 'Sleep',         value: today.sleep_duration_h || null,                     unit: 'h',    max: 10,  color: sleepColor(today.sleep_score) },
-    { label: 'Body Battery',  value: today.body_battery_hi,                              unit: '',     max: 100, color: batteryColor(today.body_battery_hi), sub: `Low: ${today.body_battery_lo ?? '?'}` },
-    { label: 'Stress',        value: today.avg_stress,                                   unit: '',     max: 100, color: stressColor(today.avg_stress) },
-    { label: 'Steps',         value: today.steps ? (today.steps / 1000).toFixed(1) : null, unit: 'k', max: 20,  color: 'blue' },
-    { label: 'Resting HR',    value: today.resting_hr,                                   unit: ' bpm', max: 80,  color: 'purple' },
-    { label: 'HRV',           value: today.hrv_ms,                                       unit: ' ms',  max: 120, color: 'blue' },
+  const headline = sortedDays[0];
+  const today = garminData[headline] || {};
+
+  // Each metric independently shows its most recent real reading, so the
+  // dashboard isn't half-empty early in the day before everything has synced.
+  // `valid` rejects placeholder values (e.g. 0h sleep on an un-synced day).
+  const defs = [
+    { label: 'Readiness',    field: 'training_readiness', unit: '',     max: 100, fmt: v => v,                 color: readinessColor },
+    { label: 'Sleep Score',  field: 'sleep_score',        unit: '',     max: 100, fmt: v => v,                 color: sleepColor },
+    { label: 'Sleep',        field: 'sleep_duration_h',   unit: 'h',    max: 10,  fmt: v => v,                 color: v => sleepColor(v * 11), valid: v => v > 0 },
+    { label: 'Body Battery', field: 'body_battery_hi',    unit: '',     max: 100, fmt: v => v,                 color: batteryColor, subField: 'body_battery_lo', subLabel: 'Low' },
+    { label: 'Stress',       field: 'avg_stress',         unit: '',     max: 100, fmt: v => v,                 color: stressColor },
+    { label: 'Steps',        field: 'steps',              unit: 'k',    max: 20,  fmt: v => (v / 1000).toFixed(1), color: () => 'blue', valid: v => v > 0 },
+    { label: 'Resting HR',   field: 'resting_hr',         unit: ' bpm', max: 80,  fmt: v => v,                 color: () => 'purple' },
+    { label: 'HRV',          field: 'hrv_ms',             unit: ' ms',  max: 120, fmt: v => v,                 color: () => 'blue' },
   ];
+
+  const metrics = defs.map(d => {
+    const { value, date } = latestWith(d.field, d.valid);
+    const stale = value != null && date !== headline;
+    let sub = '';
+    if (stale) sub = `as of ${date.slice(5)}`;
+    else if (d.subField && garminData[headline]?.[d.subField] != null) sub = `${d.subLabel}: ${garminData[headline][d.subField]}`;
+    return {
+      label: d.label,
+      value: value != null ? d.fmt(value) : null,
+      raw: value,
+      unit: d.unit,
+      max: d.max,
+      color: value != null ? d.color(value) : 'muted',
+      sub,
+    };
+  });
 
   document.getElementById('metric-cards').innerHTML = metrics.map(m => `
     <div class="card">
       <div class="card-label">${m.label}</div>
       <div class="card-value ${m.value != null ? m.color : 'muted'}">${m.value != null ? m.value + m.unit : '—'}</div>
       ${m.sub ? `<div class="card-sub">${m.sub}</div>` : ''}
-      ${m.value != null ? `<div class="card-bar"><div class="card-bar-fill bg-${m.color}" style="width:${Math.min(100, (m.value / m.max) * 100)}%"></div></div>` : ''}
+      ${m.value != null ? `<div class="card-bar"><div class="card-bar-fill bg-${m.color}" style="width:${Math.min(100, (m.raw / m.max) * 100)}%"></div></div>` : ''}
     </div>
   `).join('');
 
@@ -1124,9 +1235,12 @@ function renderDashboard() {
   makeChart('batteryChart',   labels, days14.map(d => garminData[d]?.body_battery_hi),    '#ffd740', 0, 100, '');
   makeChart('stressChart',    labels, days14.map(d => garminData[d]?.avg_stress),         '#ff5252', 0, 100, '');
 
-  // Fitness & AI insight panel
+  // Fitness & AI insight panel — VO2max/status carry over, so use latest known
   document.getElementById('fitness-panel').style.display = 'grid';
-  renderVO2maxCard(today.vo2max, today.training_status, today.training_load_7d);
+  const vo2 = latestWith('vo2max').value;
+  const status = latestWith('training_status').value;
+  const load7d = latestWith('training_load_7d').value;
+  renderVO2maxCard(vo2, status, load7d);
   loadDailyInsight(today);
 
   const allActs = sortedDays
@@ -1193,6 +1307,20 @@ function makeChart(id, labels, data, color, min, max, unit) {
       }
     }
   });
+
+  // Default the value line to the latest reading so there's always context.
+  const sel = document.getElementById(id + '-sel');
+  if (sel) {
+    let shown = false;
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (data[i] != null) {
+        sel.textContent = labels[i] + ': ' + data[i] + (unit ? ' ' + unit : '');
+        shown = true;
+        break;
+      }
+    }
+    if (!shown) sel.textContent = '';
+  }
 }
 
 // ── Trends ───────────────────────────────────────────────────────────────────
@@ -1410,7 +1538,11 @@ async function refreshData() {
           body: JSON.stringify({ ref: 'main' }),
         }
       );
-      if (!dispatch.ok) throw new Error('GitHub dispatch failed (' + dispatch.status + ')');
+      if (!dispatch.ok) {
+        const err = new Error('GitHub dispatch failed (' + dispatch.status + ')');
+        err.status = dispatch.status;
+        throw err;
+      }
 
       // Wait for the run to register, then grab its ID
       await new Promise(r => setTimeout(r, 4000));
@@ -1437,19 +1569,31 @@ async function refreshData() {
 
       btn.textContent = '✓ Done!';
       await loadData();
+      showToast('✓ Synced fresh data from Garmin', { type: 'ok' });
       setTimeout(() => { btn.textContent = origText; }, 2000);
     } catch (e) {
       btn.textContent = origText;
-      document.getElementById('last-updated').textContent = '❌ ' + e.message;
-      setTimeout(() => {
-        document.getElementById('last-updated').textContent =
-          sortedDays[0] ? 'Updated ' + sortedDays[0] : '';
-      }, 5000);
+      const goSettings = () => { showTab('coach', document.querySelector('.tab:nth-child(4), .nav-item:nth-child(4)')); document.getElementById('gh-token-input')?.focus(); document.getElementById('gh-token-input')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+      if (e.status === 401 || e.status === 403) {
+        showToast('Your GitHub token is expired or invalid, so live sync was skipped.', {
+          type: 'err', actionLabel: 'Fix token', action: goSettings, persist: true,
+        });
+      } else if (e.status === 404) {
+        showToast('Sync workflow not found — check that the token has <b>workflow</b> scope.', {
+          type: 'err', actionLabel: 'Settings', action: goSettings, persist: true,
+        });
+      } else {
+        showToast('❌ Live sync failed: ' + e.message, { type: 'err' });
+      }
     }
   } else {
     btn.classList.add('spinning');
     await loadData();
     btn.classList.remove('spinning');
+    showToast('Reloaded latest saved data. Add a GitHub token in AI Coach for live Garmin sync.', {
+      actionLabel: 'Add token',
+      action: () => { showTab('coach', document.querySelector('.tab:nth-child(4), .nav-item:nth-child(4)')); document.getElementById('gh-token-input')?.focus(); document.getElementById('gh-token-input')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); },
+    });
   }
   btn.style.pointerEvents = '';
 }
