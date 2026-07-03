@@ -705,10 +705,28 @@
     "hrv_ms": null,
     "hrv_baseline_lo": null,
     "hrv_baseline_hi": null,
-    "training_readiness": 65,
+    "training_readiness": 60,
     "intensity_min_weekly": null,
     "intensity_min_moderate": null,
     "intensity_min_vigorous": null,
-    "activities": []
+    "activities": [
+      {
+        "activity_id": 23469289297,
+        "name": "Boulderen",
+        "type": "bouldering",
+        "start": "2026-07-03 21:30:10",
+        "duration_s": 3728.535888671875,
+        "distance_m": null,
+        "avg_hr": 107.0,
+        "max_hr": 144.0,
+        "calories": 442.0,
+        "aerobic_te": 1.600000023841858,
+        "anaerobic_te": 1.2999999523162842,
+        "training_load": 29.859115600585938,
+        "avg_pace_s_km": null,
+        "elevation_gain_m": null,
+        "num_laps": null
+      }
+    ]
   }
 }
