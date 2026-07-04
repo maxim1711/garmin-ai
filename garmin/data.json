@@ -732,9 +732,9 @@
   "2026-07-04": {
     "date": "2026-07-04",
     "resting_hr": 46,
-    "steps": 4248,
-    "avg_stress": 12,
-    "body_battery_lo": 95,
+    "steps": 9902,
+    "avg_stress": 21,
+    "body_battery_lo": 52,
     "body_battery_hi": 97,
     "sleep_duration_h": 7.0,
     "sleep_score": 82,
