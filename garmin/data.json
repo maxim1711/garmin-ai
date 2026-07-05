@@ -732,9 +732,9 @@
   "2026-07-04": {
     "date": "2026-07-04",
     "resting_hr": 46,
-    "steps": 13837,
-    "avg_stress": 23,
-    "body_battery_lo": 36,
+    "steps": 20185,
+    "avg_stress": 28,
+    "body_battery_lo": 16,
     "body_battery_hi": 97,
     "sleep_duration_h": 7.0,
     "sleep_score": 82,
@@ -764,6 +764,44 @@
         "training_load": 32.24224853515625,
         "avg_pace_s_km": 354,
         "elevation_gain_m": 16.0,
+        "num_laps": null
+      }
+    ]
+  },
+  "2026-07-05": {
+    "date": "2026-07-05",
+    "resting_hr": 48,
+    "steps": 4581,
+    "avg_stress": 19,
+    "body_battery_lo": 34,
+    "body_battery_hi": 66,
+    "sleep_duration_h": 4.1,
+    "sleep_score": 49,
+    "sleep_rem_h": 0.6,
+    "sleep_deep_h": 1.2,
+    "hrv_ms": null,
+    "hrv_baseline_lo": null,
+    "hrv_baseline_hi": null,
+    "training_readiness": 1,
+    "intensity_min_weekly": null,
+    "intensity_min_moderate": null,
+    "intensity_min_vigorous": null,
+    "activities": [
+      {
+        "activity_id": 23483954872,
+        "name": "Zwembad",
+        "type": "lap_swimming",
+        "start": "2026-07-05 08:31:47",
+        "duration_s": 3980.68408203125,
+        "distance_m": 3800.0,
+        "avg_hr": 147.0,
+        "max_hr": 163.0,
+        "calories": 1052.0,
+        "aerobic_te": 4.300000190734863,
+        "anaerobic_te": 1.399999976158142,
+        "training_load": 181.95867919921875,
+        "avg_pace_s_km": null,
+        "elevation_gain_m": null,
         "num_laps": null
       }
     ]
