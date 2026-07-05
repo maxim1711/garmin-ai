@@ -1,0 +1,13 @@
+# Eindhoven Hardlopen — 2026-07-05
+- Type: running
+- Start: 2026-07-05 12:05:37
+- Duration: 4h 20m
+- Distance: 42.45 km
+- Avg HR: 135.0 bpm
+- Max HR: 150.0 bpm
+- Calories: 3298.0 kcal
+- Avg pace: 6:08 /km
+- Elevation gain: 142 m
+- Aerobic TE: 4.8
+- Anaerobic TE: 0.0
+- Training load: 218
