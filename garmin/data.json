@@ -847,8 +847,8 @@
   "2026-07-07": {
     "date": "2026-07-07",
     "resting_hr": 51,
-    "steps": 16507,
-    "avg_stress": 61,
+    "steps": 26211,
+    "avg_stress": 60,
     "body_battery_lo": 5,
     "body_battery_hi": 15,
     "sleep_duration_h": 4.7,
@@ -881,5 +881,24 @@
         "num_laps": null
       }
     ]
+  },
+  "2026-07-08": {
+    "date": "2026-07-08",
+    "resting_hr": null,
+    "steps": null,
+    "avg_stress": null,
+    "body_battery_lo": null,
+    "body_battery_hi": null,
+    "sleep_duration_h": 0.0,
+    "sleep_score": null,
+    "sleep_rem_h": null,
+    "sleep_deep_h": null,
+    "hrv_ms": null,
+    "hrv_baseline_lo": null,
+    "hrv_baseline_hi": null,
+    "intensity_min_weekly": null,
+    "intensity_min_moderate": null,
+    "intensity_min_vigorous": null,
+    "activities": []
   }
 }
