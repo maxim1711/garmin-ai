@@ -1020,21 +1020,41 @@
   },
   "2026-07-13": {
     "date": "2026-07-13",
-    "resting_hr": 52,
-    "steps": 21,
-    "avg_stress": 13,
-    "body_battery_lo": 18,
-    "body_battery_hi": 18,
-    "sleep_duration_h": 0.0,
-    "sleep_score": null,
-    "sleep_rem_h": null,
-    "sleep_deep_h": null,
+    "resting_hr": 47,
+    "steps": 8497,
+    "avg_stress": 14,
+    "body_battery_lo": 36,
+    "body_battery_hi": 82,
+    "sleep_duration_h": 5.1,
+    "sleep_score": 71,
+    "sleep_rem_h": 0.5,
+    "sleep_deep_h": 1.1,
     "hrv_ms": null,
     "hrv_baseline_lo": null,
     "hrv_baseline_hi": null,
+    "training_readiness": 1,
+    "vo2max": 58.0,
     "intensity_min_weekly": null,
     "intensity_min_moderate": null,
     "intensity_min_vigorous": null,
-    "activities": []
+    "activities": [
+      {
+        "activity_id": 23579162340,
+        "name": "Tilburg Hardlopen",
+        "type": "running",
+        "start": "2026-07-13 10:36:19",
+        "duration_s": 2182.055908203125,
+        "distance_m": 7549.68017578125,
+        "avg_hr": 148.0,
+        "max_hr": 176.0,
+        "calories": 570.0,
+        "aerobic_te": 3.5,
+        "anaerobic_te": 2.0,
+        "training_load": 127.36161804199219,
+        "avg_pace_s_km": 289,
+        "elevation_gain_m": 30.0,
+        "num_laps": null
+      }
+    ]
   }
 }
