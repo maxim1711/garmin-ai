@@ -1,0 +1,11 @@
+# Boulderen — 2026-07-16
+- Type: bouldering
+- Start: 2026-07-16 16:19:04
+- Duration: 1h 8m
+- Distance: ?
+- Avg HR: 117.0 bpm
+- Max HR: 170.0 bpm
+- Calories: 582.0 kcal
+- Aerobic TE: 2.2
+- Anaerobic TE: 2.4
+- Training load: 74

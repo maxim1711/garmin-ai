@@ -1118,9 +1118,9 @@
   "2026-07-16": {
     "date": "2026-07-16",
     "resting_hr": 57,
-    "steps": 2684,
-    "avg_stress": 34,
-    "body_battery_lo": 39,
+    "steps": 12277,
+    "avg_stress": 36,
+    "body_battery_lo": 8,
     "body_battery_hi": 39,
     "sleep_duration_h": 6.2,
     "sleep_score": 62,
@@ -1133,6 +1133,24 @@
     "intensity_min_weekly": null,
     "intensity_min_moderate": null,
     "intensity_min_vigorous": null,
-    "activities": []
+    "activities": [
+      {
+        "activity_id": 23620262001,
+        "name": "Boulderen",
+        "type": "bouldering",
+        "start": "2026-07-16 16:19:04",
+        "duration_s": 4086.2509765625,
+        "distance_m": null,
+        "avg_hr": 117.0,
+        "max_hr": 170.0,
+        "calories": 582.0,
+        "aerobic_te": 2.200000047683716,
+        "anaerobic_te": 2.4000000953674316,
+        "training_load": 73.741943359375,
+        "avg_pace_s_km": null,
+        "elevation_gain_m": null,
+        "num_laps": null
+      }
+    ]
   }
 }
